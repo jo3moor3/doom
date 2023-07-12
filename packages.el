@@ -16,3 +16,6 @@
 (package! pandoc)
 (package! ox-pandoc)
 (package! lsp-tailwindcss)
+;;(package! editorconfig)
+(package! doremi)
+(package! texfrag)

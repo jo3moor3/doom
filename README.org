@@ -5,7 +5,7 @@
 *** TABLE OF CONTENTS :toc:
 - [[#system][System]]
   - [[#behavior][Behavior]]
-  - [[#user][User]]
+  - [[#info][Info]]
   - [[#visuals][Visuals]]
 - [[#org][ORG]]
   - [[#setup][Setup]]
@@ -14,7 +14,7 @@
   - [[#org-agenda][Org-agenda]]
   - [[#org-auto-tangle][Org-auto-tangle]]
 - [[#latex][LaTeX]]
-  - [[#setup-1][Setup]]
+  - [[#preview][Preview]]
   - [[#cdlatex][cdLatex]]
 - [[#packages][Packages]]
 - [[#code][CODE]]
@@ -34,20 +34,21 @@
 (after! undo-fu
   (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
 #+end_src
-** User
+** Info
 #+begin_src elisp
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
+(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/website"))
 #+end_src
 ** Visuals
 #+begin_src elisp
 (setq doom-theme 'doom-vibrant)
-(setq doom-font (font-spec :family "Fira Code" :size 18)
-      doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
+(setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
+(setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
 
 ;(let((alternatives '("catsvg.svg"
               ;       "Doomac.png")))
-(setq fancy-splash-image (concat doom-private-dir "~/cat.png"))
+;(setq fancy-splash-image (concat doom-private-dir "~/cat.png"))
  ;             (nth (random (length alternatives)) alternatives))))
 
 (use-package! visual-fill-column
@@ -69,9 +70,9 @@
 (add-hook 'org-mode-hook 'org-fragtog-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 ;(add-hook 'org-mode-hook 'visual-line-mode)
-(add-hook 'org-mode-hook #'mixed-pitch-mode)
+;(add-hook 'org-mode-hook #'mixed-pitch-mode)
 (add-hook 'org-mode-hook #'solaire-mode))
-(setq mixed-pitch-variable-pitch-cursor nil)
+;(setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
       :n "SPC d" #'org-download-clipboard)
 #+end_src
@@ -126,7 +127,7 @@
     (setq org-auto-tangle-default t))
  #+end_src
 * LaTeX
-** Setup
+** Preview
 #+begin_src elisp
 (map! :n "SPC l" #'org-latex-preview)
 (defun zz/adjust-org-company-backends ()
@@ -136,6 +137,8 @@
 
 ;;Very important setup for previews. dvipng should be the fastest, but may not support all
 (setq org-preview-latex-default-process 'dvipng)
+
+
 (load "auctex.el" nil t t)
 (require 'tex-mik)
 ;;Fix for latex that possibly does nothing
@@ -146,7 +149,9 @@
           (setenv "PATH" path-from-shell)
           (setq exec-path (split-string path-from-shell path-separator))))
 (when (equal system-type 'darwin) (set-exec-path-from-shell-PATH))
+
 #+end_src
+
 ** cdLatex
 #+begin_src elisp
 (setq cdlatex-env-alist
@@ -183,6 +188,7 @@
 (package! lsp-tailwindcss)
 ;;(package! editorconfig)
 (package! doremi)
+(package! texfrag)
 #+end_src
 * CODE
 ** Completion

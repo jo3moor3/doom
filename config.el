@@ -9,14 +9,15 @@
 
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
+(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/website"))
 
 (setq doom-theme 'doom-vibrant)
-(setq doom-font (font-spec :family "Fira Code" :size 18)
-      doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
+(setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
+(setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
 
 ;(let((alternatives '("catsvg.svg"
               ;       "Doomac.png")))
-(setq fancy-splash-image (concat doom-private-dir "~/cat.png"))
+;(setq fancy-splash-image (concat doom-private-dir "~/cat.png"))
  ;             (nth (random (length alternatives)) alternatives))))
 
 (use-package! visual-fill-column
@@ -34,9 +35,9 @@
 (add-hook 'org-mode-hook 'org-fragtog-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 ;(add-hook 'org-mode-hook 'visual-line-mode)
-(add-hook 'org-mode-hook #'mixed-pitch-mode)
+;(add-hook 'org-mode-hook #'mixed-pitch-mode)
 (add-hook 'org-mode-hook #'solaire-mode))
-(setq mixed-pitch-variable-pitch-cursor nil)
+;(setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
       :n "SPC d" #'org-download-clipboard)
 
@@ -88,6 +89,8 @@
 
 ;;Very important setup for previews. dvipng should be the fastest, but may not support all
 (setq org-preview-latex-default-process 'dvipng)
+
+
 (load "auctex.el" nil t t)
 (require 'tex-mik)
 ;;Fix for latex that possibly does nothing
