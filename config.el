@@ -9,16 +9,14 @@
 
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/website"))
+(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/website/website"))
 
-(setq doom-theme 'doom-vibrant)
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
 
-;(let((alternatives '("catsvg.svg"
-              ;       "Doomac.png")))
-;(setq fancy-splash-image (concat doom-private-dir "~/cat.png"))
- ;             (nth (random (length alternatives)) alternatives))))
+
+
+
 
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
@@ -27,6 +25,52 @@
         visual-fill-column-center-text t
         visual-fill-column-fringes-outside-margins nil))
 
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'doom-tokyo-night t)
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+
+(setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
+
+(defun NONO-EMACS ()
+          (let* ((banner '(
+"      ___           ___           ___           ___     "
+"     /\\__\\         /\\  \\         /\\__\\         /\\  \\    "
+"    /::|  |       /::\\  \\       /::|  |       /::\\  \\   "
+"   /:|:|  |      /:/\\:\\  \\     /:|:|  |      /:/\\:\\  \\  "
+"  /:/|:|  |__   /:/  \\:\\  \\   /:/|:|  |__   /:/  \\:\\  \\ "
+" /:/ |:| /\\__\\ /:/__/ \\:\\__\\ /:/ |:| /\\__\\ /:/__/ \\:\\__\\"
+" \\/__|:|/:/  / \\:\\  \\ /:/  / \\/__|:|/:/  / \\:\\  \\ /:/  /"
+"     |:/:/  /   \\:\\  /:/  /      |:/:/  /   \\:\\  /:/  / "
+"     |::/  /     \\:\\/:/  /       |::/  /     \\:\\/:/  /  "
+"     /:/  /       \\::/  /        /:/  /       \\::/  /   "
+"     \\/__/         \\/__/         \\/__/         \\/__/    "
+"                                                        "
+"                        E M A C S                       "))
+         (longest-line (apply #'max (mapcar #'length banner))))
+    (put-text-property
+     (point)
+     (dolist (line banner (point))
+       (insert (+doom-dashboard--center
+                +doom-dashboard--width
+                (concat line (make-string (max 0 (- longest-line (length line))) 102)))
+               "\n"))
+     'face 'doom-dashboard-banner)))
+
+(setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
+
 (after! org
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
@@ -34,10 +78,11 @@
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'org-fragtog-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
-;(add-hook 'org-mode-hook 'visual-line-mode)
-;(add-hook 'org-mode-hook #'mixed-pitch-mode)
-(add-hook 'org-mode-hook #'solaire-mode))
-;(setq mixed-pitch-variable-pitch-cursor nil)
+(add-hook 'org-mode-hook 'visual-line-mode)
+(add-hook 'org-mode-hook #'mixed-pitch-mode)
+(add-hook 'org-mode-hook #'solaire-mode)
+)
+(setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
       :n "SPC d" #'org-download-clipboard)
 
@@ -55,7 +100,7 @@
  '(org-level-3 ((t ( :foreground "#F9DB6D" :height 1.5))))
  '(org-level-2 ((t ( :foreground "#EEB4B3" :height 1.75))))
  '(org-level-1 ((t ( :weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-document-title ((t ( :weight bold  :height 2.5 :underline nil)))))
+ '(org-document-title ((t ( :weight bold :foreground "#FFFFFF" :height 2.5 :underline t)))))
 
 (custom-theme-set-faces
    'user

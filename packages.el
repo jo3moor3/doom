@@ -19,3 +19,4 @@
 ;;(package! editorconfig)
 (package! doremi)
 (package! texfrag)
+(package! doom-themes)
