@@ -45,11 +45,8 @@
 ** Fonts
 #+begin_src elisp
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
+
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
-
-
-
-
 
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
@@ -145,7 +142,7 @@
  '(org-level-3 ((t ( :foreground "#F9DB6D" :height 1.5))))
  '(org-level-2 ((t ( :foreground "#EEB4B3" :height 1.75))))
  '(org-level-1 ((t ( :weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-document-title ((t ( :weight bold :foreground "#FFFFFF" :height 2.5 :underline t)))))
+ '(org-document-title ((t ( :weight bold :foreground "#FFFFFF" :height 2.5 :underline nil)))))
 
 (custom-theme-set-faces
    'user
@@ -187,7 +184,6 @@
 
 ;;Very important setup for previews. dvipng should be the fastest, but may not support all
 (setq org-preview-latex-default-process 'dvipng)
-
 
 (load "auctex.el" nil t t)
 (require 'tex-mik)
