@@ -1,4 +1,3 @@
-(package! codeium :recipe (:host github :repo "Exafunction/codeium.el"))
 (package! nose)
 (package! pytest)
 (package! pyimport)
@@ -16,7 +15,6 @@
 (package! pandoc)
 (package! ox-pandoc)
 (package! lsp-tailwindcss)
-;;(package! editorconfig)
 (package! doremi)
 (package! texfrag)
 (package! doom-themes)
