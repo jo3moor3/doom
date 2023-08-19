@@ -22,13 +22,14 @@
         visual-fill-column-center-text t
         visual-fill-column-fringes-outside-margins nil))
 
+(add-to-list 'default-frame-alist '(alpha . 90))
 (use-package doom-themes
   :ensure t
   :config
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
         doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'doom-tokyo-night t)
+  (load-theme 'doom-dracula  t)
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
   ;; Enable custom neotree theme (all-the-icons must be installed!)
