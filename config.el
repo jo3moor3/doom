@@ -1,3 +1,4 @@
+(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
 (map! :n "SPC I" #'ispell
@@ -7,13 +8,21 @@
 (after! undo-fu
   (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
 
+;SPELLING
+(after! ispell
+  (setenv "LANG" "en_US.UTF-8")
+  (setq ispell-dictionary "en_US,fr_FR")
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "en_US,fr_FR")
+  )
+
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/website/website"))
+(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/Portfolio" "~/code/"))
 
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
-
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
+
 
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
@@ -39,6 +48,8 @@
   (doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
+(after! solaire-mode
+  (solaire-global-mode -1))
 
 (setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
 
@@ -70,15 +81,18 @@
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 
 (after! org
+(setq org-startup-folded t)
+(setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
+(add-hook 'org-mode-hook 'org-eldoc-load)
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'org-fragtog-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 (add-hook 'org-mode-hook #'mixed-pitch-mode)
-(add-hook 'org-mode-hook #'solaire-mode)
+(solaire-global-mode -1)
 )
 (setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
@@ -176,12 +190,26 @@
 ;;        company-frontends '(company-preview-frontend)  ;; get only preview
 ;;        ))
 
+;DEBUGGER
+(after! dap-mode
+  (setq dap-python-debuger 'debugpy))
+;Style
 (use-package! python-black
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
+
+;Virtual enviroment
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
-  (setq venv-location "/.virtualenvs/"))
+  (setq venv-location "~/.conda/envs/test"))
+
+
+
+
+
+;keybindings
+(map! :n "SPC P" #'run-python
+     :n "SPC S" #'solaire-mode)
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
