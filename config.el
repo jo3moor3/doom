@@ -1,3 +1,4 @@
+;FIXES
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
@@ -21,7 +22,7 @@
 
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/Portfolio" "~/code/"))
+(setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
 
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
@@ -204,15 +205,10 @@
 ;Virtual enviroment
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
-  (setq venv-location "~/.conda/envs/test"))
-
-
-
-
+  (setq venv-location "~/.conda/envs/"))
 
 ;keybindings
-(map! :n "SPC P" #'run-python
-     :n "SPC S" #'solaire-mode)
+(map! :n "SPC P" #'run-python)
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 

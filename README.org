@@ -36,6 +36,7 @@
 * System
 ** Behavior
 #+begin_src  elisp
+;FIXES
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
@@ -62,7 +63,7 @@
 #+begin_src elisp
 (setq user-full-name "Joe Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/.config/qtile" "~/Shaders" "~/Documents/GitHub/Portfolio" "~/code/"))
+(setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
 #+end_src
 ** Fonts
 #+begin_src elisp
@@ -387,36 +388,31 @@
        :tools
        ;;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
-       (debugger          ; FIXME stepping through code, to help you add bugs
-        +lsp
-        )
+       (debugger +lsp)         ; FIXME stepping through code, to help you add bugs
        direnv
        ;;docker
-       ;editorconfig      ; let someone else argue about tabs vs spaces
+       ;editorconfig       ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
        ;;gist              ; interacting with github gists
-       ;lookup            ; navigate your code and its documentation
-       (lsp               ; M-x vscode
-        +lsp
-        )
-       magit             ; a git porcelain for Emacs
-       make              ; run make tasks from Emacs
+       ;lookup             ; navigate your code and its documentation
+       (lsp +lsp)          ; M-x vscode
+       (magit +forge)      ; a git porcelain for Emacs
+       make                ; run make tasks from Emacs
        ;;pass              ; password manager for nerds
        ;;pdf               ; pdf enhancements
        ;;prodigy           ; FIXME managing external services & code builders
-       rgb               ; creating color strings
+       rgb                 ; creating color strings
        ;;taskrunner        ; taskrunner for all your projects
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
-       tree-sitter       ; syntax and parsing, sitting in a tree...
+       tree-sitter         ; syntax and parsing, sitting in a tree...
        ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
        (:if IS-MAC macos)  ; improve compatibility with macOS
-      (tty              ; improve the terminal Emacs experience
-       +osc
-       )
+      (tty                 ; improve the terminal Emacs experience
+       +osc)
 #+end_src
 ** Languages
 #+begin_src elisp :tangle init.el
@@ -561,15 +557,10 @@
 ;Virtual enviroment
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
-  (setq venv-location "~/.conda/envs/test"))
-
-
-
-
+  (setq venv-location "~/.conda/envs/"))
 
 ;keybindings
-(map! :n "SPC P" #'run-python
-     :n "SPC S" #'solaire-mode)
+(map! :n "SPC P" #'run-python)
 #+end_src
 
 #+RESULTS:
