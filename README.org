@@ -38,10 +38,12 @@
 #+begin_src  elisp
 ;FIXES
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+(setq display-line-numbers-type 'relative)
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
 (map! :n "SPC I" #'ispell
-      :n "SPC r" #'doom/reload)
+      :n "SPC r" #'doom/reload
+      :n "SPC g p" #'magit-push)
 (map!
  :map emacs-everywhere-mode-map
  "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
@@ -407,7 +409,7 @@
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
        tree-sitter         ; syntax and parsing, sitting in a tree...
-       ;;upload            ; map local to remote projects via ssh/ftp
+       upload            ; map local to remote projects via ssh/ftp
 
        :os
        (:if IS-MAC macos)  ; improve compatibility with macOS
@@ -436,7 +438,6 @@
         +dragndrop
         +pandoc
         )
-       plantuml          ; diagrams for confusing people more
        (python            ; beautiful is better than ugly
         +lsp
         +poetry
@@ -449,6 +450,7 @@
         +lsp
         +tree-sitter
         )
+       ;plantuml          ; diagrams for confusing people more
        ;(web +lsp)             ; the tubes
        ;;csharp            ; unity, .NET, and mono shenanigans
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
@@ -501,6 +503,7 @@
        ;;(scheme +guile)   ; a fully conniving family of lisps
 #+end_src
 ** Email/App/Config
+
 #+begin_src elisp :tangle init.el
        :email
        ;;(mu4e +org +gmail)

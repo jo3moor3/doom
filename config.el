@@ -1,9 +1,11 @@
 ;FIXES
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+(setq display-line-numbers-type 'relative)
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
 (map! :n "SPC I" #'ispell
-      :n "SPC r" #'doom/reload)
+      :n "SPC r" #'doom/reload
+      :n "SPC g p" #'magit-push)
 (map!
  :map emacs-everywhere-mode-map
  "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)

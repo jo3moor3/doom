@@ -115,7 +115,7 @@
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
        tree-sitter         ; syntax and parsing, sitting in a tree...
-       ;;upload            ; map local to remote projects via ssh/ftp
+       upload            ; map local to remote projects via ssh/ftp
 
        :os
        (:if IS-MAC macos)  ; improve compatibility with macOS
@@ -142,7 +142,6 @@
         +dragndrop
         +pandoc
         )
-       plantuml          ; diagrams for confusing people more
        (python            ; beautiful is better than ugly
         +lsp
         +poetry
@@ -155,6 +154,7 @@
         +lsp
         +tree-sitter
         )
+       ;plantuml          ; diagrams for confusing people more
        ;(web +lsp)             ; the tubes
        ;;csharp            ; unity, .NET, and mono shenanigans
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
