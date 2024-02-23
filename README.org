@@ -39,6 +39,7 @@
 - [[#config-help][Config Help]]
 
 * System
+magit test
 ** Behavior
 #+begin_src  elisp
 ;FIXES
