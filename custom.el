@@ -5,6 +5,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages '(s))
  '(warning-suppress-types '((org-element-cache) (org-element-cache) (defvaralias))))
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -24,7 +25,7 @@
  '(org-level-6 ((t (:height 1.1))))
  '(org-level-7 ((t (:height 1.0))))
  '(org-level-8 ((t (:height 1.0))))
- '(org-link ((t (:foreground "royal blue" :underline t))))
+ '(org-link ((t (:foreground "lavender" :underline t))))
  '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
  '(org-property-value ((t (:inherit fixed-pitch))) t)
  '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))

@@ -1,6 +1,8 @@
 #+title: Doom Config
 #+PROPERTY: header-args :tangle config.el
 #+auto-tangle: t
+#+author:    Joe Moore
+#+email:     jo3moore@gmail.com
 
 *** TABLE OF CONTENTS :toc:
 - [[#system][System]]
@@ -12,9 +14,12 @@
 - [[#org][ORG]]
   - [[#setup][Setup]]
   - [[#org-download][Org-download]]
-  - [[#headlinesfaces][Headlines/faces]]
+  - [[#bullets][Bullets]]
   - [[#org-agenda][Org-agenda]]
   - [[#org-auto-tangle][Org-auto-tangle]]
+- [[#custom][Custom]]
+  - [[#variables][Variables]]
+  - [[#faces][Faces]]
 - [[#latex][LaTeX]]
   - [[#preview][Preview]]
   - [[#cdlatex][cdLatex]]
@@ -161,35 +166,9 @@
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
-
-** Headlines/faces
-#+begin_src elisp
-(custom-theme-set-faces
- 'user
- '(org-level-8 ((t ( :height 1.0))))
- '(org-level-7 ((t ( :height 1.0))))
- '(org-level-6 ((t ( :height 1.1))))
- '(org-level-5 ((t ( :height 1.15))))
- '(org-level-4 ((t ( :foreground "#A1E5AB" :height 1.25))))
- '(org-level-3 ((t ( :foreground "#F9DB6D" :height 1.5))))
- '(org-level-2 ((t ( :foreground "#EEB4B3" :height 1.75))))
- '(org-level-1 ((t ( :weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-document-title ((t ( :weight bold :foreground "#FFFFFF" :height 2.5 :underline nil)))))
-
-(custom-theme-set-faces
-   'user
-   '(org-block ((t (:inherit fixed-pitch))))
-   '(org-code ((t (:inherit (shadow fixed-pitch)))))
-   '(org-document-info ((t (:foreground "dark orange"))))
-   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-   '(org-link ((t (:foreground "royal blue" :underline t))))
-   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-property-value ((t (:inherit fixed-pitch))) t)
-   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
-   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+** Bullets
+#+begin_src emacs-lisp :tangle yes
+(setq org-bullets-bullet-list '("⬢" "◆" "▲" "■"))
 #+end_src
 ** Org-agenda
 #+begin_src elisp
@@ -205,6 +184,47 @@
     :config
     (setq org-auto-tangle-default t))
  #+end_src
+* Custom
+Be careful with these....
+** Variables
+#+begin_src elisp :tangle custom.el
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages '(s))
+ '(warning-suppress-types '((org-element-cache) (org-element-cache) (defvaralias))))
+#+end_src
+** Faces
+#+begin_src elisp :tangle custom.el
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "dark orange"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
+ '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
+ '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
+ '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
+ '(org-level-5 ((t (:height 1.15))))
+ '(org-level-6 ((t (:height 1.1))))
+ '(org-level-7 ((t (:height 1.0))))
+ '(org-level-8 ((t (:height 1.0))))
+ '(org-link ((t (:foreground "lavender" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+#+end_src
 * LaTeX
 ** Preview
 #+begin_src elisp
@@ -250,31 +270,31 @@
 (package! all-the-icons-dired)
 (package! all-the-icons)
 (package! doom-themes)
-;PYTHON
+;PYTHON____________________
 (package! poetry)
 (package! conda)
 (package! lsp-pyright)
 (package! virtualenvwrapper)
-(package! lsp-python-ms)
+;;(package! lsp-python-ms)
 (package! nose)
 (package! python-pytest)
 (package! py-isort)
 (package! python-black)
-;ORG
+;ORG_____________________
 (package! org-fragtog)
 (package! org-auto-tangle)
 (package! org-modern)
 (package! org-download)
 (package! pandoc)
 (package! ox-pandoc)
-;COMPLETION
+;COMPLETION______________
 (package! cape)
 ;(package! corfu)
-;MATH
+;MATH____________________
 (package! auctex)
 (package! company-math)
 (package! texfrag)
-;WEB
+;WEB_____________________
 ;(package! lsp-tailwindcss)
 (package! doremi)
 #+end_src
@@ -397,7 +417,7 @@
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
        ;;gist              ; interacting with github gists
-       ;lookup             ; navigate your code and its documentation
+       ;;lookup             ; navigate your code and its documentation
        (lsp +lsp)          ; M-x vscode
        (magit +forge)      ; a git porcelain for Emacs
        make                ; run make tasks from Emacs
@@ -409,7 +429,7 @@
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
        tree-sitter         ; syntax and parsing, sitting in a tree...
-       upload            ; map local to remote projects via ssh/ftp
+       ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
        (:if IS-MAC macos)  ; improve compatibility with macOS
@@ -421,37 +441,33 @@
        :lang
        (cc +lsp)         ; C > C++ == 1
        emacs-lisp        ; drown in parentheses
-       (gdscript          ; the language you waited for
-        +lsp
-        )
+       (gdscript +lsp)   ; the language you waited for
        json              ; At least it ain't XML
-       javascript        ; all(hope(abandon(ye(who(enter(here))))))
-       (latex              ; writing papers in Emacs has never been so fun
+       ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       (latex +lsp       ; writing papers in Emacs has never been so fun
         +latexmk
-        +lsp
-        +cdlatex
+        +cdlatex         ; yassnippets for latex
         )
        markdown          ; writing docs for people to ignore
-       (org               ; organize your plain life in plain text
-        +roam2
-        +pretty
-        +dragndrop
-        +pandoc
+       (org              ; organize your plain life in plain text
+        +roam2           ; wander around notes
+        +pretty          ; better looking org
+        +dragndrop       ; drag and drop files/images into org buffers
+        +pandoc          ; export-with-pandoc support
         )
-       (python            ; beautiful is better than ugly
-        +lsp
-        +poetry
-        +conda
-        +pyright
+       (python +lsp      ; beautiful is better than ugly
+        +poetry          ; Python dependency manangement
+        +conda           ; Virtual environment support
+        +pyright         ; The best Python language server
         +tree-sitter
         )
        qt                ; the 'cutest' gui framework ever
-       (sh                ; she sells {ba,z,fi}sh shells on the C xor
-        +lsp
+       (sh +lsp          ; she sells {ba,z,fi}sh shells on the C xor
         +tree-sitter
         )
-       ;plantuml          ; diagrams for confusing people more
-       ;(web +lsp)             ; the tubes
+       data              ; config/data formats
+       ;;plantuml          ; diagrams for confusing people more
+       ;;(web +lsp)        ; the tubes
        ;;csharp            ; unity, .NET, and mono shenanigans
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
        ;;(go +lsp)         ; the hipster dialect
@@ -482,7 +498,6 @@
        ;;common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
        ;;crystal           ; ruby at the speed of c
-       ;;data              ; config/data formats
        ;;(dart +flutter)   ; paint ui and not much else
        ;;dhall
        ;;elixir            ; erlang done right
@@ -558,15 +573,20 @@
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 ;Virtual enviroment
+(setq conda-env-autoactivate-mode t)
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
   (setq venv-location "~/.conda/envs/"))
-
+(use-package! conda
+  :ensure t
+  :init
+  (setq conda-anaconda-home (expand-file-name "~/.conda"))
+  (setq conda-env-home-directory (expand-file-name "~/.conda")))
 ;keybindings
-(map! :n "SPC P" #'run-python)
+(map! :n "SPC P" #'run-python
+      :n "SPC e a" #'conda-env-activate
+      :n "SPC e d" #'conda-env-deactivate)
 #+end_src
-
-#+RESULTS:
 
 * Config Help
 #+begin_src elisp

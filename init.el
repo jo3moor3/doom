@@ -103,7 +103,7 @@
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
        ;;gist              ; interacting with github gists
-       ;lookup             ; navigate your code and its documentation
+       ;;lookup             ; navigate your code and its documentation
        (lsp +lsp)          ; M-x vscode
        (magit +forge)      ; a git porcelain for Emacs
        make                ; run make tasks from Emacs
@@ -115,7 +115,7 @@
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
        tree-sitter         ; syntax and parsing, sitting in a tree...
-       upload            ; map local to remote projects via ssh/ftp
+       ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
        (:if IS-MAC macos)  ; improve compatibility with macOS
@@ -125,37 +125,33 @@
        :lang
        (cc +lsp)         ; C > C++ == 1
        emacs-lisp        ; drown in parentheses
-       (gdscript          ; the language you waited for
-        +lsp
-        )
+       (gdscript +lsp)   ; the language you waited for
        json              ; At least it ain't XML
-       javascript        ; all(hope(abandon(ye(who(enter(here))))))
-       (latex              ; writing papers in Emacs has never been so fun
+       ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       (latex +lsp       ; writing papers in Emacs has never been so fun
         +latexmk
-        +lsp
-        +cdlatex
+        +cdlatex         ; yassnippets for latex
         )
        markdown          ; writing docs for people to ignore
-       (org               ; organize your plain life in plain text
-        +roam2
-        +pretty
-        +dragndrop
-        +pandoc
+       (org              ; organize your plain life in plain text
+        +roam2           ; wander around notes
+        +pretty          ; better looking org
+        +dragndrop       ; drag and drop files/images into org buffers
+        +pandoc          ; export-with-pandoc support
         )
-       (python            ; beautiful is better than ugly
-        +lsp
-        +poetry
-        +conda
-        +pyright
+       (python +lsp      ; beautiful is better than ugly
+        +poetry          ; Python dependency manangement
+        +conda           ; Virtual environment support
+        +pyright         ; The best Python language server
         +tree-sitter
         )
        qt                ; the 'cutest' gui framework ever
-       (sh                ; she sells {ba,z,fi}sh shells on the C xor
-        +lsp
+       (sh +lsp          ; she sells {ba,z,fi}sh shells on the C xor
         +tree-sitter
         )
-       ;plantuml          ; diagrams for confusing people more
-       ;(web +lsp)             ; the tubes
+       data              ; config/data formats
+       ;;plantuml          ; diagrams for confusing people more
+       ;;(web +lsp)        ; the tubes
        ;;csharp            ; unity, .NET, and mono shenanigans
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
        ;;(go +lsp)         ; the hipster dialect
@@ -186,7 +182,6 @@
        ;;common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
        ;;crystal           ; ruby at the speed of c
-       ;;data              ; config/data formats
        ;;(dart +flutter)   ; paint ui and not much else
        ;;dhall
        ;;elixir            ; erlang done right

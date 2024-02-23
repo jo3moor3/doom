@@ -108,33 +108,6 @@
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 
-(custom-theme-set-faces
- 'user
- '(org-level-8 ((t ( :height 1.0))))
- '(org-level-7 ((t ( :height 1.0))))
- '(org-level-6 ((t ( :height 1.1))))
- '(org-level-5 ((t ( :height 1.15))))
- '(org-level-4 ((t ( :foreground "#A1E5AB" :height 1.25))))
- '(org-level-3 ((t ( :foreground "#F9DB6D" :height 1.5))))
- '(org-level-2 ((t ( :foreground "#EEB4B3" :height 1.75))))
- '(org-level-1 ((t ( :weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-document-title ((t ( :weight bold :foreground "#FFFFFF" :height 2.5 :underline nil)))))
-
-(custom-theme-set-faces
-   'user
-   '(org-block ((t (:inherit fixed-pitch))))
-   '(org-code ((t (:inherit (shadow fixed-pitch)))))
-   '(org-document-info ((t (:foreground "dark orange"))))
-   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-   '(org-link ((t (:foreground "royal blue" :underline t))))
-   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-property-value ((t (:inherit fixed-pitch))) t)
-   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
-   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-
 ;; (after! org
 ;;   (setq org-agenda-files "~/org/agenda.org"))
 
@@ -205,12 +178,19 @@
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 ;Virtual enviroment
+(setq conda-env-autoactivate-mode t)
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
   (setq venv-location "~/.conda/envs/"))
-
+(use-package! conda
+  :ensure t
+  :init
+  (setq conda-anaconda-home (expand-file-name "~/.conda"))
+  (setq conda-env-home-directory (expand-file-name "~/.conda")))
 ;keybindings
-(map! :n "SPC P" #'run-python)
+(map! :n "SPC P" #'run-python
+      :n "SPC e a" #'conda-env-activate
+      :n "SPC e d" #'conda-env-deactivate)
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
