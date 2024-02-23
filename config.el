@@ -4,7 +4,7 @@
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
 (map! :n "SPC I" #'ispell
-      :n "SPC r" #'doom/reload
+      :n "SPC r r" #'doom/reload
       :n "SPC g p" #'magit-push)
 (map!
  :map emacs-everywhere-mode-map
@@ -102,7 +102,8 @@
 )
 (setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
-      :n "SPC d" #'org-download-clipboard)
+      :n "SPC d" #'org-download-clipboard
+      :n "SPC r o" #'org-reload)
 
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)

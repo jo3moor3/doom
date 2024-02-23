@@ -1,4 +1,4 @@
-(package! dap-mode)
+;VISUAL
 (package! all-the-icons-dired)
 (package! all-the-icons)
 (package! doom-themes)
@@ -7,6 +7,7 @@
 (package! conda)
 (package! lsp-pyright)
 (package! virtualenvwrapper)
+(package! dap-mode)
 ;;(package! lsp-python-ms)
 (package! nose)
 (package! python-pytest)

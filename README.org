@@ -11,10 +11,10 @@
   - [[#fonts][Fonts]]
   - [[#theme][Theme]]
   - [[#banner][Banner]]
+  - [[#eshell][Eshell]]
 - [[#org][ORG]]
   - [[#setup][Setup]]
   - [[#org-download][Org-download]]
-  - [[#bullets][Bullets]]
   - [[#org-agenda][Org-agenda]]
   - [[#org-auto-tangle][Org-auto-tangle]]
 - [[#custom][Custom]]
@@ -47,7 +47,7 @@
 (setq confirm-kill-emacs nil)
 (setq company-idle-delay nil)
 (map! :n "SPC I" #'ispell
-      :n "SPC r" #'doom/reload
+      :n "SPC r r" #'doom/reload
       :n "SPC g p" #'magit-push)
 (map!
  :map emacs-everywhere-mode-map
@@ -139,6 +139,10 @@
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 #+end_src
+** Eshell
+#+begin_src emacs-lisp :tangle yes
+;(setq eshell-rc-script (concat user-emacs-directory "~/.config/eshellrc"))
+#+end_src
 * ORG
 ** Setup
 #+begin_src elisp
@@ -158,17 +162,14 @@
 )
 (setq mixed-pitch-variable-pitch-cursor nil)
 (map! :n "SPC n r t" #'org-roam-tag-add
-      :n "SPC d" #'org-download-clipboard)
+      :n "SPC d" #'org-download-clipboard
+      :n "SPC r o" #'org-reload)
 #+end_src
 ** Org-download
 #+begin_src elisp
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
-#+end_src
-** Bullets
-#+begin_src emacs-lisp :tangle yes
-(setq org-bullets-bullet-list '("⬢" "◆" "▲" "■"))
 #+end_src
 ** Org-agenda
 #+begin_src elisp
@@ -266,7 +267,7 @@ Be careful with these....
 
 * Packages
 #+begin_src elisp :tangle packages.el
-(package! dap-mode)
+;VISUAL
 (package! all-the-icons-dired)
 (package! all-the-icons)
 (package! doom-themes)
@@ -275,6 +276,7 @@ Be careful with these....
 (package! conda)
 (package! lsp-pyright)
 (package! virtualenvwrapper)
+(package! dap-mode)
 ;;(package! lsp-python-ms)
 (package! nose)
 (package! python-pytest)
@@ -393,10 +395,10 @@ Be careful with these....
 ** Terminals/Checkers
 #+begin_src elisp :tangle init.el
        :term
-       ;;eshell            ; the elisp shell that works everywhere
+       eshell            ; the elisp shell that works everywhere
        ;;shell             ; simple shell REPL for Emacs
        ;;term              ; basic terminal emulator for Emacs
-       vterm             ; the best terminal emulation in Emacs
+       ;;vterm             ; the best terminal emulation in Emacs
 
        :checkers
        syntax              ; tasing you for every semicolon you forget
@@ -587,7 +589,6 @@ Be careful with these....
       :n "SPC e a" #'conda-env-activate
       :n "SPC e d" #'conda-env-deactivate)
 #+end_src
-
 * Config Help
 #+begin_src elisp
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
