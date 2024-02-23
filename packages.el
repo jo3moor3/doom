@@ -28,5 +28,6 @@
 (package! company-math)
 (package! texfrag)
 ;WEB_____________________
+(package! ssh-agency)
 ;(package! lsp-tailwindcss)
 (package! doremi)
