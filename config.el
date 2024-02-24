@@ -183,11 +183,13 @@
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
   (setq venv-location "~/.conda/envs/"))
+
 (use-package! conda
   :ensure t
   :init
   (setq conda-anaconda-home (expand-file-name "~/.conda"))
   (setq conda-env-home-directory (expand-file-name "~/.conda")))
+
 ;keybindings
 (map! :n "SPC P" #'run-python
       :n "SPC e a" #'conda-env-activate
