@@ -1,0 +1,38 @@
+alias q exit
+
+;Files
+alias f find-file $1
+alias ff find-file-other-window $1
+alias d dired $1
+alias cdp cd-to-project
+
+; Merge Xresources
+alias merge xrdb -merge ~/.Xresources
+
+; Changing ls to exa(eza)
+alias ls exa -al --color=always --group-directories-first $* ;my fav
+alias la exa -a --color=always --group-directories-first $* ;all files/dirs
+alias ll exa -l --color=always --group-directories-first $* ;long format
+alias lt exa -at --color=always --group-directories-first $* ;tree listing
+alias l. exa -a1 $* | rg "^\." ;show only hidden files
+;ripgrep
+alias rg rg --color=always $*
+
+alias git --no-pager $*
+alias gg magit-status
+
+alias clear clear-scrollback
+
+; Aliases for Doom emacs utilities
+alias ds ~/.emacs.d/bin/doom sync
+alias dc ~/.emacs.d/bin/doom doctor
+alias dp ~/.emacs.d/bin/doom purge
+alias du ~/.emacs.d/bin/doom upgrade
+alias bd eshell-up $1
+
+; Confirm before overwriting something
+alias rm rm -i $1
+alias mv mv -i $1
+alias cp cp -i $1
+
+
