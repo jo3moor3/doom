@@ -8,6 +8,7 @@
 (package! lsp-pyright)
 (package! virtualenvwrapper)
 (package! dap-mode)
+(package! iedit)
 ;;(package! lsp-python-ms)
 (package! nose)
 (package! python-pytest)

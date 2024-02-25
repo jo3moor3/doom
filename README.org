@@ -11,7 +11,9 @@
   - [[#fonts][Fonts]]
   - [[#theme][Theme]]
   - [[#banner][Banner]]
-  - [[#eshell][Eshell]]
+- [[#eshell][Eshell]]
+  - [[#profile][Profile]]
+  - [[#aliases][Aliases]]
 - [[#org][ORG]]
   - [[#setup][Setup]]
   - [[#org-download][Org-download]]
@@ -139,9 +141,53 @@
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 #+end_src
-** Eshell
-#+begin_src emacs-lisp :tangle yes
-;(setq eshell-rc-script (concat user-emacs-directory "~/.config/eshellrc"))
+* Eshell
+** Profile
+#+begin_src emacs-lisp :tangle eshell/profile
+colorscript random
+#+end_src
+** Aliases
+#+begin_src emacs-lisp :tangle eshell/aliases
+alias q exit
+
+;Files
+alias f find-file $1
+alias ff find-file-other-window $1
+alias d dired $1
+alias cdp cd-to-project
+
+; Merge Xresources
+alias merge xrdb -merge ~/.Xresources
+
+; Changing ls to exa(eza)
+alias ls exa -al --color=always --group-directories-first $* ;my fav
+alias la exa -a --color=always --group-directories-first $* ;all files/dirs
+alias ll exa -l --color=always --group-directories-first $* ;long format
+alias lt exa -at --color=always --group-directories-first $* ;tree listing
+alias l. exa -a1 $* | rg "^\." ;show only hidden files
+;ripgrep
+alias rg rg --color=always $*
+
+alias git --no-pager $*
+alias gg magit-status
+
+alias clear clear-scrollback
+
+; Aliases for Doom emacs utilities
+alias ds ~/.emacs.d/bin/doom sync
+alias dc ~/.emacs.d/bin/doom doctor
+alias dp ~/.emacs.d/bin/doom purge
+alias du ~/.emacs.d/bin/doom upgrade
+alias bd eshell-up $1
+
+; Confirm before overwriting something
+alias rm rm -i $1
+alias mv mv -i $1
+alias cp cp -i $1
+#+end_src
+
+#+begin_src emacs-lisp :tangle eshell/aliases
+
 #+end_src
 * ORG
 ** Setup
@@ -277,6 +323,7 @@ Be careful with these....
 (package! lsp-pyright)
 (package! virtualenvwrapper)
 (package! dap-mode)
+(package! iedit)
 ;;(package! lsp-python-ms)
 (package! nose)
 (package! python-pytest)

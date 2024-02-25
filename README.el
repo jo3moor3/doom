@@ -1,1 +1,1 @@
-;(setq eshell-rc-script (concat user-emacs-directory "~/.config/eshellrc"))
+(setq eshell-rc-script "~/.config/doom/eshell/profile")
