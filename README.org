@@ -317,7 +317,6 @@ Be careful with these....
 * Packages
 #+begin_src elisp :tangle packages.el
 ;VISUAL
-(package! all-the-icons-dired)
 (package! all-the-icons)
 (package! doom-themes)
 ;PYTHON____________________
@@ -346,7 +345,7 @@ Be careful with these....
 (package! auctex)
 (package! company-math)
 (package! texfrag)
-;WEB_____________________
+;MISC_____________________
 (package! ssh-agency)
 ;(package! lsp-tailwindcss)
 (package! doremi)
