@@ -1,12 +1,9 @@
 # -*- mode: snippet -*-
 # name: matrix
-# key: matrix
+# key: mat
 # uuid: matrix
 # possible improvement, compute the number of lines from the argument to array
 # --
-\left \(
-\begin{array}{${1:ccc}}
-${2:v1 & v2} \\
-`%`$0
-\end{array}
-\right \)
+\begin{bmatrix}
+$1 & $2 \\\\ $3 & $0
+\end{bmatrix}

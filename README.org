@@ -6,28 +6,26 @@
 
 *** TABLE OF CONTENTS :toc:
 - [[#system][System]]
-  - [[#behavior][Behavior]]
+  - [[#setup][Setup]]
+  - [[#spelling][Spelling]]
+  - [[#reloading][Reloading]]
   - [[#info][Info]]
-  - [[#fonts][Fonts]]
+  - [[#fontsdocument][Fonts/Document]]
   - [[#theme][Theme]]
   - [[#banner][Banner]]
 - [[#eshell][Eshell]]
   - [[#profile][Profile]]
   - [[#aliases][Aliases]]
 - [[#org][ORG]]
-  - [[#setup][Setup]]
-  - [[#org-download][Org-download]]
-  - [[#org-agenda][Org-agenda]]
-  - [[#org-auto-tangle][Org-auto-tangle]]
+  - [[#setup-1][Setup]]
+  - [[#aesthetics][Aesthetics]]
+  - [[#latex][LaTeX]]
+  - [[#keybindings][Keybindings]]
 - [[#custom][Custom]]
   - [[#variables][Variables]]
   - [[#faces][Faces]]
-- [[#latex][LaTeX]]
-  - [[#preview][Preview]]
-  - [[#cdlatex][cdLatex]]
 - [[#packages][Packages]]
 - [[#init][Init]]
-  - [[#init-help][Init Help]]
   - [[#inputcompletion][Input/Completion]]
   - [[#ui][UI]]
   - [[#editoremacs][Editor/Emacs]]
@@ -35,50 +33,70 @@
   - [[#toolsos][Tools/OS]]
   - [[#languages][Languages]]
   - [[#emailappconfig][Email/App/Config]]
-- [[#code][CODE]]
+- [[#code][Code]]
   - [[#completion][Completion]]
   - [[#python][Python]]
-- [[#config-help][Config Help]]
+- [[#help][Help]]
+  - [[#init-1][Init]]
+  - [[#config][Config]]
 
 * System
-** Behavior
+** Setup
+Deactivating and initializing certain things, and setting up "important" keybindings.
 #+begin_src  elisp
-;FIXES
+;May help some performance issues
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
-(setq display-line-numbers-type 'relative)
-(setq confirm-kill-emacs nil)
-(setq company-idle-delay nil)
-(map! :n "SPC I" #'ispell
-      :n "SPC r r" #'doom/reload
-      :n "SPC g p" #'magit-push)
+
+(setq confirm-kill-emacs nil) ;Disable quit confirmation
+(setq company-idle-delay nil) ;Completion now triggers via CTRL-SPC
+
+;Open an emacs buffer with super+alt+SPC to edit text from any program.
+;Then confirm edit with the following keybinding:
 (map!
  :map emacs-everywhere-mode-map
  "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
 
-;;UNDO
+;;Undo and redo
 (after! undo-fu
   (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
-
-;SPELLING
+#+end_src
+** Spelling
+Adding both French and English dictionaries, as well as a keybinding for stepping through document wide spellchecks.
+#+begin_src  elisp
 (after! ispell
   (setenv "LANG" "en_US.UTF-8")
   (setq ispell-dictionary "en_US,fr_FR")
   (ispell-set-spellchecker-params)
-  (ispell-hunspell-add-multi-dic "en_US,fr_FR")
-  )
+  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
+(map! :n "SPC I" #'ispell)
+#+end_src
+** Reloading
+Strange bug where an error occurs after reloading, only fixed by subsequently reloading org.
+#+begin_src emacs-lisp
+(defun reload_all ()
+(interactive)
+(doom/reload)
+(sit-for 3) ; delay for doom/reload to finish
+(org-reload))
+
+(map! :n "SPC r" #'reload_all)
 
 #+end_src
 ** Info
+My name, email, and the location of my projects.
 #+begin_src elisp
-(setq user-full-name "Joe Moore"
+(setq user-full-name "Theodore Moore"
       user-mail-address "jo3moore@gmail.com")
 (setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
 #+end_src
-** Fonts
+** Fonts/Document
+Setting up font for code/mono space (JetBrains) and for org/variable pitch (Alegreya). Also document setup.
 #+begin_src elisp
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
 
+;Relative line numbers is nice for vim(evil) movement!
+(setq display-line-numbers-type 'relative)
 
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
@@ -88,15 +106,24 @@
         visual-fill-column-fringes-outside-margins nil))
 #+end_src
 ** Theme
+Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]]
+Tokyo-Night is also a cool one (originally a vscode theme).
+Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][GitHub - doomemacs/themes]]
 #+begin_src elisp
+;disabling solaire mode for now because of conflicts
+(after! solaire-mode (solaire-global-mode -1))
+;Window opacity for seeing my beautiful desktop
 (add-to-list 'default-frame-alist '(alpha . 90))
+;Theme config begins
 (use-package doom-themes
   :ensure t
   :config
+  ;Themes to chooose from
+  ;(load-theme 'doom-tokyo-night  t)
+  (load-theme 'doom-dracula  t)
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
         doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'doom-dracula  t)
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
   ;; Enable custom neotree theme (all-the-icons must be installed!)
@@ -106,11 +133,10 @@
   (doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
-(after! solaire-mode
-  (solaire-global-mode -1))
 #+end_src
 
 ** Banner
+Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash image currently.
 #+begin_src elisp
 (setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
 
@@ -143,94 +169,110 @@
 #+end_src
 * Eshell
 ** Profile
+Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
+I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
+Alternatively you can just use =colorscript --blacklist (script index/name)=
 #+begin_src emacs-lisp :tangle eshell/profile
 colorscript random
 #+end_src
 ** Aliases
+*** Necessity
+The usual stuff.
 #+begin_src emacs-lisp :tangle eshell/aliases
+;Standard
 alias q exit
-
-;Files
-alias f find-file $1
-alias ff find-file-other-window $1
-alias d dired $1
-alias cdp cd-to-project
-
-; Merge Xresources
+alias clear clear-scrollback
+alias rg rg --color=always $* ;ripgrep
+;Confirm before overwriting something
+alias rm rm -i $1
+alias mv mv -i $1
+alias cp cp -i $1
+;Merge Xresources
 alias merge xrdb -merge ~/.Xresources
-
-; Changing ls to exa(eza)
-alias ls exa -al --color=always --group-directories-first $* ;my fav
-alias la exa -a --color=always --group-directories-first $* ;all files/dirs
-alias ll exa -l --color=always --group-directories-first $* ;long format
-alias lt exa -at --color=always --group-directories-first $* ;tree listing
-alias l. exa -a1 $* | rg "^\." ;show only hidden files
-;ripgrep
-alias rg rg --color=always $*
-
+#+end_src
+*** ls to eza
+[[https://github.com/eza-community/eza][eza]] is based on [[https://github.com/ogham/exa][exa]] which is based off of [[ls]].
+They all list files real nice.
+#+begin_src emacs-lisp :tangle eshell/aliases
+alias ls eza -al --color=always --group-directories-first $* ;my fav
+alias la eza -a --color=always --group-directories-first $* ;all files/dirs
+alias ll eza -l --color=always --group-directories-first $* ;long format
+alias lt eza -at --color=always --group-directories-first $* ;tree listing
+alias l. eza -a1 $* | rg "^\." ;show only hidden files
+#+end_src
+*** Emacs specific
+Magit, Doom utilities, and various file commands.
+#+begin_src emacs-lisp :tangle eshell/aliases
+;Magit aliases
 alias git --no-pager $*
 alias gg magit-status
-
-alias clear clear-scrollback
-
-; Aliases for Doom emacs utilities
+;Aliases for Doom emacs utilities
 alias ds ~/.emacs.d/bin/doom sync
 alias dc ~/.emacs.d/bin/doom doctor
 alias dp ~/.emacs.d/bin/doom purge
 alias du ~/.emacs.d/bin/doom upgrade
 alias bd eshell-up $1
-
-; Confirm before overwriting something
-alias rm rm -i $1
-alias mv mv -i $1
-alias cp cp -i $1
-#+end_src
-
-#+begin_src emacs-lisp :tangle eshell/aliases
-
+;Files Aliases
+alias f find-file $1
+alias ff find-file-other-window $1
+alias d dired $1
+alias cdp cd-to-project
 #+end_src
 * ORG
 ** Setup
+Important configurations, [[https://github.com/abo-abo/org-download][org-download]], and [[https://github.com/yilkalargaw/org-auto-tangle][org-auto-tangle]] (same as :config +literate in Doom/init.el).
 #+begin_src elisp
 (after! org
-(setq org-startup-folded t)
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
-(add-hook 'org-mode-hook 'org-eldoc-load)
-(add-hook 'org-mode-hook #'org-modern-mode)
-(add-hook 'org-mode-hook '+org-pretty-mode)
-(add-hook 'org-mode-hook 'org-fragtog-mode)
-(add-hook 'org-mode-hook 'variable-pitch-mode)
-(add-hook 'org-mode-hook 'visual-line-mode)
-(add-hook 'org-mode-hook #'mixed-pitch-mode)
-(solaire-global-mode -1)
-)
-(setq mixed-pitch-variable-pitch-cursor nil)
-(map! :n "SPC n r t" #'org-roam-tag-add
-      :n "SPC d" #'org-download-clipboard
-      :n "SPC r o" #'org-reload)
-#+end_src
-** Org-download
-#+begin_src elisp
+(add-hook 'org-mode-hook 'org-eldoc-load))
+;org download for pasting images
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
-#+end_src
-** Org-agenda
-#+begin_src elisp
-;; (after! org
-;;   (setq org-agenda-files "~/org/agenda.org"))
-#+end_src
-#+RESULTS:
-** Org-auto-tangle
- #+begin_src elisp
+;Org auto tangle
 (use-package! org-auto-tangle
     :defer t
     :hook (org-mode . org-auto-tangle-mode)
     :config
     (setq org-auto-tangle-default t))
- #+end_src
+#+end_src
+** Aesthetics
+#+begin_src emacs-lisp
+(after! org
+(setq org-modern-star nil)
+(setq org-startup-folded t)
+(add-hook 'org-mode-hook #'org-modern-mode)
+(add-hook 'org-mode-hook '+org-pretty-mode)
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+(add-hook 'org-mode-hook #'mixed-pitch-mode)
+;Make latex fragments easy to edit/preview
+(add-hook 'org-mode-hook 'org-fragtog-mode))
+
+(setq mixed-pitch-variable-pitch-cursor nil)
+#+end_src
+** LaTeX
+I use latex solely as a method to render math in org.
+#+begin_src elisp
+(defun zz/adjust-org-company-backends ()
+  (remove-hook 'after-change-major-mode-hook '+company-init-backends-h)
+  (setq-local company-backends nil))
+;(add-hook! org-mode (zz/adjust-org-company-backends))
+
+;;Setup for previews. dvipng is the fastest, but may not support all
+(setq org-preview-latex-default-process 'dvipng)
+
+(load "auctex.el" nil t t)
+(require 'tex-mik)
+#+end_src
+** Keybindings
+#+begin_src emacs-lisp
+(map! :n "SPC d" #'org-download-clipboard)
+(map! :n "SPC n r t" #'org-roam-tag-add)
+(map! :n "SPC l" #'org-latex-preview)
+#+end_src
 * Custom
 Be careful with these....
 ** Variables
@@ -272,45 +314,6 @@ Be careful with these....
  '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
  '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 #+end_src
-* LaTeX
-** Preview
-#+begin_src elisp
-(map! :n "SPC l" #'org-latex-preview)
-(defun zz/adjust-org-company-backends ()
-  (remove-hook 'after-change-major-mode-hook '+company-init-backends-h)
-  (setq-local company-backends nil))
-(add-hook! org-mode (zz/adjust-org-company-backends))
-
-;;Very important setup for previews. dvipng should be the fastest, but may not support all
-(setq org-preview-latex-default-process 'dvipng)
-
-(load "auctex.el" nil t t)
-(require 'tex-mik)
-;;Fix for latex that possibly does nothing
-(defun set-exec-path-from-shell-PATH ()
-  (let ((path-from-shell
-         (replace-regexp-in-string "[[:space]\n]*$" ""
-                (shell-command-to-string "$SHELL -l -c 'echo $PATH'"))))
-          (setenv "PATH" path-from-shell)
-          (setq exec-path (split-string path-from-shell path-separator))))
-(when (equal system-type 'darwin) (set-exec-path-from-shell-PATH))
-
-#+end_src
-
-** cdLatex
-#+begin_src elisp
-(setq cdlatex-env-alist
-     '(("bmatrix" "\\begin{bmatrix}\n\?\&\ \\\\ \&\n\\end{bmatrix}\n" nil)
-       ("Fraction" "\$\\frac\{\?\}\{\}\$\n" nil)
-       ("Tabular" "\\begin{tabular*}}\?\n\\end{tabular*}\n" nil)))
-
-(setq cdlatex-command-alist
- '(("mat" "Insert bmatrix env"   "" cdlatex-environment ("bmatrix") t nil)
-   ("fr" "Insert Fraction env" "" cdlatex-environment ("Fraction") t nil)
-   ("tab" "Insert Tabular env" "" cdlatex-environment ("Tabular") t nil)))
-
-#+end_src
-
 * Packages
 #+begin_src elisp :tangle packages.el
 ;VISUAL
@@ -349,24 +352,6 @@ Be careful with these....
 (package! doremi)
 #+end_src
 * Init
-** Init Help
-#+begin_src elisp :tangle init.el
-;;; init.el -*- lexical-binding: t; -*-
-
-;; This file controls what Doom modules are enabled and what order they load
-;; in. Remember to run 'doom sync' after modifying it!
-
-;; NOTE Press 'SPC h d h' (or 'C-h d h' for non-vim users) to access Doom's
-;;      documentation. There you'll find a link to Doom's Module Index where all
-;;      of our modules are listed, including what flags they support.
-
-;; NOTE Move your cursor over a module's name (or its flags) and press 'K' (or
-;;      'C-c c k' for non-vim users) to view its documentation. This works on
-;;      flags as well (those symbols that start with a plus).
-;;
-;;      Alternatively, press 'gd' (or 'C-c c d') on a module to browse its
-;;      directory (for easy access to its source code).
-#+end_src
 ** Input/Completion
 #+begin_src elisp :tangle init.el
 (doom! :input
@@ -495,9 +480,7 @@ Be careful with these....
        json              ; At least it ain't XML
        ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
        (latex +lsp       ; writing papers in Emacs has never been so fun
-        +latexmk
-        +cdlatex         ; yassnippets for latex
-        )
+        +latexmk)
        markdown          ; writing docs for people to ignore
        (org              ; organize your plain life in plain text
         +roam2           ; wander around notes
@@ -509,12 +492,10 @@ Be careful with these....
         +poetry          ; Python dependency manangement
         +conda           ; Virtual environment support
         +pyright         ; The best Python language server
-        +tree-sitter
-        )
+        +tree-sitter)
        qt                ; the 'cutest' gui framework ever
        (sh +lsp          ; she sells {ba,z,fi}sh shells on the C xor
-        +tree-sitter
-        )
+        +tree-sitter)
        data              ; config/data formats
        ;;plantuml          ; diagrams for confusing people more
        ;;(web +lsp)        ; the tubes
@@ -587,7 +568,7 @@ Be careful with these....
        ;;literate
        (default +bindings +smartparens))
 #+end_src
-* CODE
+* Code
 ** Completion
 #+begin_src elisp
 ;; ;;CAPE
@@ -637,9 +618,30 @@ Be careful with these....
 ;keybindings
 (map! :n "SPC P" #'run-python
       :n "SPC e a" #'conda-env-activate
-      :n "SPC e d" #'conda-env-deactivate)
+      :n "SPC e d" #'conda-env-deactivate
+      :n "SPC g p" #'magit-push)
 #+end_src
-* Config Help
+* Help
+Or just go to doom/help with =SPC-h-d-h=
+** Init
+#+begin_src elisp :tangle init.el
+;;; init.el -*- lexical-binding: t; -*-
+
+;; This file controls what Doom modules are enabled and what order they load
+;; in. Remember to run 'doom sync' after modifying it!
+
+;; NOTE Press 'SPC h d h' (or 'C-h d h' for non-vim users) to access Doom's
+;;      documentation. There you'll find a link to Doom's Module Index where all
+;;      of our modules are listed, including what flags they support.
+
+;; NOTE Move your cursor over a module's name (or its flags) and press 'K' (or
+;;      'C-c c k' for non-vim users) to view its documentation. This works on
+;;      flags as well (those symbols that start with a plus).
+;;
+;;      Alternatively, press 'gd' (or 'C-c c d') on a module to browse its
+;;      directory (for easy access to its source code).
+#+end_src
+** Config
 #+begin_src elisp
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
