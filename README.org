@@ -9,6 +9,7 @@
 #+latex_class: chameleon
 #+html_content_class: chameleon
 [[file:images/doom_icon.png]]
+
 *** TABLE OF CONTENTS :toc:
 - [[#globals][Globals]]
   - [[#constants][Constants]]
@@ -136,6 +137,8 @@ Simultaneous editing via iedit and comfortable searching with consult.
   (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
 #+end_src
 *** Dired and dashboard
+Making Dired behave more like ranger without installing the whole ranger conversion package.
+Adding a shortcut to return to the dashboard. In the next section it becomes more apparent why this is useful.
 #+begin_src emacs-lisp
 (map! :map dired-mode-map
       :n "h" #'dired-up-directory
@@ -144,6 +147,8 @@ Simultaneous editing via iedit and comfortable searching with consult.
 (map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
 #+end_src
 *** Dashboard quick actions
+This makes the dashboard 1000x more useful. Adapted from [[https://tecosaur.github.io/emacs-config/config.html#dashboard][Tecosaur's Config]].
+Single key press keybindings, a help menu, and shortcuts to everything I could ever need.
 #+begin_src emacs-lisp
 (defun +doom-dashboard-setup-modified-keymap ()
   (setq +doom-dashboard-mode-map (make-sparse-keymap))
@@ -168,20 +173,18 @@ Simultaneous editing via iedit and comfortable searching with consult.
 #+end_src
 * Visual
 ** Theme
-Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]]
-Tokyo-Night is also a cool one (originally a vscode theme).
+Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]].
 Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][GitHub - doomemacs/themes]]
 #+begin_src elisp
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
-;Window opacity for seeing my beautiful desktop
+;       Window opacity for seeing my beautiful desktop
 (add-to-list 'default-frame-alist '(alpha . 90))
 ;Theme config begins
 (use-package doom-themes
   :ensure t
   :config
-  ;Themes to chooose from
-  ;(load-theme 'doom-tokyo-night  t)
+  ;Default theme
   (load-theme 'doom-dracula  t)
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
@@ -282,7 +285,7 @@ Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash imag
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 #+end_src
-*** e
+*** Menu
 #+begin_src emacs-lisp
 ;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
@@ -324,7 +327,6 @@ alias l. eza -a1 $* | rg "^\." ;show only hidden files
 Magit, Doom utilities, and various file commands.
 #+begin_src emacs-lisp :tangle eshell/aliases
 ;Magit aliases
-alias git --no-pager $*
 alias gg magit-status
 ;Aliases for Doom emacs utilities
 alias ds ~/.emacs.d/bin/doom sync
