@@ -72,6 +72,7 @@
         :desc "Config dir" :ng "C" #'doom/open-private-config
         :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
         :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
+        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
         :desc "Notes" :ng "n" #'org-roam-node-find
         :desc "Switch buffers (all)" :ng "B" #'consult-buffer
         :desc "IBuffer" :ng "i" #'ibuffer
