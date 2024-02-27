@@ -5,7 +5,7 @@
 #+PROPERTY: header-args :tangle config.el
 #+author:    Joe Moore
 #+email:     jo3moore@gmail.com
-https://github.com/jo3moor3/doom/blob/main/doom%20icon.png?raw=true
+[[file:doom icon.png]]
 *** TABLE OF CONTENTS :toc:
 - [[#globals][Globals]]
   - [[#constants][Constants]]
