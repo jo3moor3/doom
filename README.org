@@ -1,0 +1,806 @@
+:PROPERTIES:
+:ID:       7ebdbbd1-d6c6-4e23-849b-6ca29864ff0f
+:END:
+#+title: Doom Config
+#+PROPERTY: header-args :tangle config.el
+#+author:    Joe Moore
+#+email:     jo3moore@gmail.com
+*** TABLE OF CONTENTS :toc:
+- [[#globals][Globals]]
+  - [[#constants][Constants]]
+  - [[#convenience][Convenience]]
+  - [[#keybindings][Keybindings]]
+- [[#visual][Visual]]
+  - [[#theme][Theme]]
+  - [[#fontsdocument][Fonts/Document]]
+  - [[#files][Files]]
+  - [[#dashboard][Dashboard]]
+- [[#eshell][Eshell]]
+  - [[#profile][Profile]]
+  - [[#aliases][Aliases]]
+- [[#org][ORG]]
+  - [[#setup][Setup]]
+  - [[#aesthetics][Aesthetics]]
+  - [[#latex][LaTeX]]
+  - [[#keybindings-1][Keybindings]]
+- [[#custom][Custom]]
+  - [[#variables][Variables]]
+  - [[#faces][Faces]]
+- [[#packages][Packages]]
+- [[#init][Init]]
+  - [[#inputcompletion][Input/Completion]]
+  - [[#ui][UI]]
+  - [[#editoremacs][Editor/Emacs]]
+  - [[#terminalscheckers][Terminals/Checkers]]
+  - [[#toolsos][Tools/OS]]
+  - [[#languages][Languages]]
+  - [[#emailappconfig][Email/App/Config]]
+- [[#code][Code]]
+  - [[#completion][Completion]]
+  - [[#python][Python]]
+- [[#help][Help]]
+  - [[#init-1][Init]]
+  - [[#config][Config]]
+
+* Globals
+** Constants
+*** Disabling
+#+begin_src elisp
+;May help some performance issues
+(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+
+(setq confirm-kill-emacs nil) ;Disable quit confirmation
+(setq company-idle-delay nil) ;Completion now triggers via CTRL-SPC
+
+#+end_src
+*** Enabling
+#+begin_src emacs-lisp
+(when (version< "29.0.50" emacs-version)
+  (pixel-scroll-precision-mode))
+#+end_src
+*** Spelling
+Adding both French and English dictionaries, as well as a keybinding for stepping through document wide spellchecks.
+#+begin_src  elisp
+(after! ispell
+  (setenv "LANG" "en_US.UTF-8")
+  (setq ispell-dictionary "en_US,fr_FR")
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
+(map! :n "SPC I" #'ispell)
+#+end_src
+*** Info
+My name, email, and the location of my projects.
+#+begin_src elisp
+(setq user-full-name "Theodore Moore"
+      user-mail-address "jo3moore@gmail.com")
+(setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
+#+end_src
+** Convenience
+*** Reloading
+Strange bug where an error occurs after reloading, only fixed by subsequently reloading org.
+#+begin_src emacs-lisp
+(defun reload_all ()
+(interactive)
+(doom/reload)
+(sit-for 3) ; delay for doom/reload to finish
+(org-reload))
+
+;For even more stability after reloading.
+(add-hook! 'reload_all (doom-load-envvars-file (expand-file-name "env" doom-local-dir) t))
+
+(map! :n "SPC r" #'reload_all)
+
+#+end_src
+*** Bury compile buffer
+#+begin_src emacs-lisp
+(defun bury-compile-buffer-if-successful (buffer string)
+  "Bury a compilation buffer if succeeded without warnings "
+  (when (and (eq major-mode 'comint-mode)
+             (string-match "finished" string)
+             (not
+              (with-current-buffer buffer
+                (search-forward "warning" nil t))))
+    (run-with-timer 1 nil
+                    (lambda (buf)
+                      (let ((window (get-buffer-window buf)))
+                        (when (and (window-live-p window)
+                                   (eq buf (window-buffer window)))
+                          (delete-window window))))
+                    buffer)))
+
+(add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
+#+end_src
+** Keybindings
+*** Save
+It's the simple things.
+#+begin_src emacs-lisp
+(map! :g "C-s" #'save-buffer)
+#+end_src
+*** Search, find, and replace
+Simultaneous editing via iedit and comfortable searching with consult.
+#+begin_src emacs-lisp
+(map! :desc "iedit" :nv "C-=" #'iedit-mode)
+
+(map! :after evil :gnvi "C-f" #'consult-line)
+#+end_src
+*** Undo and everywhere
+#+begin_src emacs-lisp
+(map! :map emacs-everywhere-mode-map
+      "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
+
+(after! undo-fu
+  (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
+#+end_src
+*** Dired and dashboard
+#+begin_src emacs-lisp
+(map! :map dired-mode-map
+      :n "h" #'dired-up-directory
+      :n "l" #'dired-find-alternate-file)
+
+(map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
+#+end_src
+*** Dashboard quick actions
+#+begin_src emacs-lisp
+(defun +doom-dashboard-setup-modified-keymap ()
+  (setq +doom-dashboard-mode-map (make-sparse-keymap))
+  (map! :map +doom-dashboard-mode-map
+        :desc "Find file" :ng "f" #'find-file
+        :desc "Recent files" :ng "r" #'consult-recent-file
+        :desc "Config dir" :ng "C" #'doom/open-private-config
+        :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
+        :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
+        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
+        :desc "Notes" :ng "n" #'org-roam-node-find
+        :desc "Switch buffers (all)" :ng "B" #'consult-buffer
+        :desc "IBuffer" :ng "i" #'ibuffer
+        :desc "Previous buffer" :ng "p" #'previous-buffer
+        :desc "Set theme" :ng "t" #'consult-theme
+        :desc "Quit" :ng "Q" #'save-buffers-kill-terminal
+        :desc "Show keybindings" :ng "h" (cmd! (which-key-show-keymap '+doom-dashboard-mode-map))))
+
+(add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
+(add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
+(add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
+#+end_src
+* Visual
+** Theme
+Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]]
+Tokyo-Night is also a cool one (originally a vscode theme).
+Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][GitHub - doomemacs/themes]]
+#+begin_src elisp
+;disabling solaire mode for now because of conflicts
+(after! solaire-mode (solaire-global-mode -1))
+;Window opacity for seeing my beautiful desktop
+(add-to-list 'default-frame-alist '(alpha . 90))
+;Theme config begins
+(use-package doom-themes
+  :ensure t
+  :config
+  ;Themes to chooose from
+  ;(load-theme 'doom-tokyo-night  t)
+  (load-theme 'doom-dracula  t)
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+#+end_src
+
+** Fonts/Document
+Setting up font for code/mono space (JetBrains) and for org/variable pitch (Alegreya). Also document setup.
+#+begin_src elisp
+(setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
+(setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
+
+;Relative line numbers is nice for vim(evil) movement!
+(setq display-line-numbers-type 'relative)
+
+(use-package! visual-fill-column
+  :hook (visual-line-mode . visual-fill-column-mode)
+  :init
+  (setq visual-fill-column-width 120
+        visual-fill-column-center-text t
+        visual-fill-column-fringes-outside-margins nil))
+#+end_src
+** Files
+#+begin_src emacs-lisp
+(after! marginalia
+  (setq marginalia-censor-variables nil)
+
+  (defadvice! +marginalia--anotate-local-file-colorful (cand)
+    "Just a more colourful version of `marginalia--anotate-local-file'."
+    :override #'marginalia--annotate-local-file
+    (when-let (attrs (file-attributes (substitute-in-file-name
+                                       (marginalia--full-candidate cand))
+                                      'integer))
+      (marginalia--fields
+       ((marginalia--file-owner attrs)
+        :width 12 :face 'marginalia-file-owner)
+       ((marginalia--file-modes attrs))
+       ((+marginalia-file-size-colorful (file-attribute-size attrs))
+        :width 7)
+       ((+marginalia--time-colorful (file-attribute-modification-time attrs))
+        :width 12))))
+
+  (defun +marginalia--time-colorful (time)
+    (let* ((seconds (float-time (time-subtract (current-time) time)))
+           (color (doom-blend
+                   (face-attribute 'marginalia-date :foreground nil t)
+                   (face-attribute 'marginalia-documentation :foreground nil t)
+                   (/ 1.0 (log (+ 3 (/ (+ 1 seconds) 345600.0)))))))
+      ;; 1 - log(3 + 1/(days + 1)) % grey
+      (propertize (marginalia--time time) 'face (list :foreground color))))
+
+  (defun +marginalia-file-size-colorful (size)
+    (let* ((size-index (/ (log10 (+ 1 size)) 7.0))
+           (color (if (< size-index 10000000) ; 10m
+                      (doom-blend 'orange 'green size-index)
+                    (doom-blend 'red 'orange (- size-index 1)))))
+      (propertize (file-size-human-readable size) 'face (list :foreground color)))))
+#+end_src
+** Dashboard
+*** Banner
+Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash image currently.
+#+begin_src elisp
+(setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
+
+(defun NONO-EMACS ()
+          (let* ((banner '(
+"      ___           ___           ___           ___     "
+"     /\\__\\         /\\  \\         /\\__\\         /\\  \\    "
+"    /::|  |       /::\\  \\       /::|  |       /::\\  \\   "
+"   /:|:|  |      /:/\\:\\  \\     /:|:|  |      /:/\\:\\  \\  "
+"  /:/|:|  |__   /:/  \\:\\  \\   /:/|:|  |__   /:/  \\:\\  \\ "
+" /:/ |:| /\\__\\ /:/__/ \\:\\__\\ /:/ |:| /\\__\\ /:/__/ \\:\\__\\"
+" \\/__|:|/:/  / \\:\\  \\ /:/  / \\/__|:|/:/  / \\:\\  \\ /:/  /"
+"     |:/:/  /   \\:\\  /:/  /      |:/:/  /   \\:\\  /:/  / "
+"     |::/  /     \\:\\/:/  /       |::/  /     \\:\\/:/  /  "
+"     /:/  /       \\::/  /        /:/  /       \\::/  /   "
+"     \\/__/         \\/__/         \\/__/         \\/__/    "
+"                                                        "
+"                        E M A C S                       "))
+         (longest-line (apply #'max (mapcar #'length banner))))
+    (put-text-property
+     (point)
+     (dolist (line banner (point))
+       (insert (+doom-dashboard--center
+                +doom-dashboard--width
+                (concat line (make-string (max 0 (- longest-line (length line))) 102)))
+               "\n"))
+     'face 'doom-dashboard-banner)))
+
+(setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
+#+end_src
+*** e
+#+begin_src emacs-lisp
+;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
+(remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
+#+end_src
+* Eshell
+** Profile
+Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
+I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
+Alternatively you can just use =colorscript --blacklist (script index/name)=
+#+begin_src emacs-lisp :tangle eshell/profile
+colorscript random
+#+end_src
+** Aliases
+*** Necessity
+The usual stuff.
+#+begin_src emacs-lisp :tangle eshell/aliases
+;Standard
+alias q exit
+alias clear clear-scrollback
+alias rg rg --color=always $* ;ripgrep
+;Confirm before overwriting something
+alias rm rm -i $1
+alias mv mv -i $1
+alias cp cp -i $1
+;Merge Xresources
+alias merge xrdb -merge ~/.Xresources
+#+end_src
+*** ls to eza
+[[https://github.com/eza-community/eza][eza]] is based on [[https://github.com/ogham/exa][exa]] which is based off of [[ls]].
+They all list files real nice.
+#+begin_src emacs-lisp :tangle eshell/aliases
+alias ls eza -al --color=always --group-directories-first $* ;my fav
+alias la eza -a --color=always --group-directories-first $* ;all files/dirs
+alias ll eza -l --color=always --group-directories-first $* ;long format
+alias lt eza -at --color=always --group-directories-first $* ;tree listing
+alias l. eza -a1 $* | rg "^\." ;show only hidden files
+#+end_src
+*** Emacs specific
+Magit, Doom utilities, and various file commands.
+#+begin_src emacs-lisp :tangle eshell/aliases
+;Magit aliases
+alias git --no-pager $*
+alias gg magit-status
+;Aliases for Doom emacs utilities
+alias ds ~/.emacs.d/bin/doom sync
+alias dc ~/.emacs.d/bin/doom doctor
+alias dp ~/.emacs.d/bin/doom purge
+alias du ~/.emacs.d/bin/doom upgrade
+alias bd eshell-up $1
+;Files Aliases
+alias f find-file $1
+alias ff find-file-other-window $1
+alias d dired $1
+alias cdp cd-to-project
+#+end_src
+* ORG
+** Setup
+Important org configurations, [[https://github.com/abo-abo/org-download][org-download]]
+#+begin_src elisp
+(after! org
+(setq org-element-use-cache nil)
+(setq org-directory "~/org/")
+(setq org-roam-index-file "~/org/roam/index.org")
+(add-hook 'org-mode-hook 'org-eldoc-load))
+;org download for pasting images
+(setq-default org-download-image-dir: "~/Pictures/org-download")
+(require 'org-download)
+(add-hook 'dired-mode-hook 'org-download-enable)
+#+end_src
+** Aesthetics
+#+begin_src emacs-lisp
+(after! org
+(setq org-modern-star nil)
+(setq org-startup-folded t)
+(add-hook 'org-mode-hook #'org-modern-mode)
+(add-hook 'org-mode-hook '+org-pretty-mode)
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+(add-hook 'org-mode-hook #'mixed-pitch-mode)
+;Make latex fragments easy to edit/preview
+(add-hook 'org-mode-hook 'org-fragtog-mode))
+
+(setq mixed-pitch-variable-pitch-cursor nil)
+#+end_src
+** LaTeX
+I use latex to render math in org.
+[[https://github.com/io12/org-fragtog][org-fragtog]] is wonderfully convenient, [[https://ctan.org/pkg/dvipng?lang=en][dvipng]] is a must for quick preview generation, and [[https://www.gnu.org/software/auctex/][AUCTeX]] is required for this all to work.
+#+begin_src elisp
+;Used this function when company was acting up with latex. keeping it around just in case.
+(defun zz/adjust-org-company-backends ()
+  (remove-hook 'after-change-major-mode-hook '+company-init-backends-h)
+  (setq-local company-backends nil))
+;;(add-hook! org-mode (zz/adjust-org-company-backends))
+
+;Make latex fragments easy to edit/preview
+(after! org (add-hook 'org-mode-hook 'org-fragtog-mode))
+
+;;Setup for previews. dvipng is the fastest, but may not support all
+(setq org-preview-latex-default-process 'dvipng)
+
+(load "auctex.el" nil t t)
+(require 'tex-mik)
+#+end_src
+** Keybindings
+#+begin_src emacs-lisp
+(map! :n "SPC n r t" #'org-roam-tag-add
+      (:prefix ("SPC l" . "link")
+      :desc "store org link" :nv "s" #'org-store-link
+      :desc "insert org link" :nv "i" #'org-insert-link
+      :desc "insert url" :nv "c" #'org-cliplink
+      :desc "paste image" :nv "d" #'org-download-clipboard
+      ))
+#+end_src
+* Custom
+Be careful with these....
+** Variables
+#+begin_src elisp :tangle custom.el
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages '(s))
+ '(warning-suppress-types '((org-element-cache) (org-element-cache) (defvaralias))))
+#+end_src
+** Faces
+#+begin_src elisp :tangle custom.el
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "dark orange"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
+ '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
+ '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
+ '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
+ '(org-level-5 ((t (:height 1.15))))
+ '(org-level-6 ((t (:height 1.1))))
+ '(org-level-7 ((t (:height 1.0))))
+ '(org-level-8 ((t (:height 1.0))))
+ '(org-link ((t (:foreground "lavender" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+#+end_src
+* Packages
+#+begin_src elisp :tangle packages.el
+;VISUAL
+(package! all-the-icons)
+(package! doom-themes)
+;PYTHON____________________
+(package! poetry)
+(package! conda)
+(package! lsp-pyright)
+(package! virtualenvwrapper)
+(package! dap-mode)
+(package! iedit)
+;;(package! lsp-python-ms)
+(package! nose)
+(package! python-pytest)
+(package! py-isort)
+(package! python-black)
+;ORG_____________________
+(package! org-modern)
+(package! org-download)
+(package! pandoc)
+(package! ox-pandoc)
+;MATH____________________
+;(package! xenops)
+(package! org-fragtog)
+(package! auctex)
+;COMPLETION______________
+(package! cape)
+(package! corfu)
+;MISC_____________________
+(package! ssh-agency)
+#+end_src
+* Init
+** Input/Completion
+#+begin_src elisp :tangle init.el
+(doom! :input
+       ;;bidi              ; (tfel ot) thgir etirw uoy gnipleh
+       ;;chinese
+       ;;japanese
+       ;;layout            ; auie,ctsrnm is the superior home row
+
+       :completion
+       ;;company           ; the ultimate code completion backend
+       ;;helm              ; the *other* search engine for love and life
+       ;;ido               ; the other *other* search engine...
+       ;;ivy               ; a search engine for love and life
+       (vertico           ; the search engine of the future
+        +icons)
+
+#+end_src
+** UI
+#+begin_src elisp :tangle init.el
+       :ui
+       ;;deft              ; notational velocity for Emacs
+       doom              ; what makes DOOM look the way it does
+       doom-dashboard    ; a nifty splash screen for Emacs
+       ;;doom-quit         ; DOOM quit-message prompts when you quit Emacs
+       ;;(emoji +unicode)  ; 🙂
+       hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
+       ;;hydra
+       ;;indent-guides     ; highlighted indent columns
+       ;ligatures         ; ligatures and symbols to make your code pretty again
+       ;;minimap           ; show a map of the code on the side
+       modeline          ; snazzy, Atom-inspired modeline, plus API
+       nav-flash         ; blink cursor line after big motions
+       neotree           ; a project drawer, like NERDTree for vim
+       ophints           ; highlight the region an operation acts on
+       (popup +defaults)   ; tame sudden yet inevitable temporary windows
+       ;;tabs              ; a tab bar for Emacs
+       ;(treemacs          ; a project drawer, like neotree but cooler
+       ; +lsp +icons )
+       ;;unicode           ; extended unicode support for various languages
+       (vc-gutter +pretty) ; vcs diff in the fringe
+       vi-tilde-fringe   ; fringe tildes to mark beyond EOB
+       window-select     ; visually switch windows
+       ;workspaces        ; tab emulation, persistence & separate workspaces
+       zen               ; distraction-free coding or writing
+#+end_src
+** Editor/Emacs
+#+begin_src elisp :tangle init.el
+       :editor
+       (evil +everywhere); come to the dark side, we have cookies
+       file-templates    ; auto-snippets for empty files
+       fold              ; (nigh) universal code folding
+       (format +onsave)  ; automated prettiness
+       ;;god               ; run Emacs commands without modifier keys
+       ;;lispy             ; vim for lisp, for people who don't like vim
+       ;;multiple-cursors  ; editing in many places at once
+       ;;objed             ; text object editing for the innocent
+       ;;parinfer          ; turn lisp into python, sort of
+       ;;rotate-text       ; cycle region at point between text candidates
+       snippets          ; my elves. They type so I don't have to
+       ;;word-wrap         ; soft wrapping with language-aware indent
+
+       :emacs
+       (dired             ; making dired pretty [functional]
+        +icons
+        )
+       electric          ; smarter, keyword-based electric-indent
+       (ibuffer         ; interactive buffer management
+        +icons
+        )
+       undo              ; persistent, smarter undo for your inevitable mistakes
+       vc                ; version-control and Emacs, sitting in a tree
+#+end_src
+** Terminals/Checkers
+#+begin_src elisp :tangle init.el
+       :term
+       eshell            ; the elisp shell that works everywhere
+       ;;shell             ; simple shell REPL for Emacs
+       ;;term              ; basic terminal emulator for Emacs
+       ;;vterm             ; the best terminal emulation in Emacs
+
+       :checkers
+       syntax              ; tasing you for every semicolon you forget
+       (spell              ; tasing you for misspelling mispelling
+        +flyspell
+        +hunspell)
+       ;;grammar           ; tasing grammar mistake every you make
+#+end_src
+** Tools/OS
+#+begin_src elisp :tangle init.el
+       :tools
+       ;;ansible
+       ;;biblio            ; Writes a PhD for you (citation needed)
+       (debugger +lsp)         ; FIXME stepping through code, to help you add bugs
+       direnv
+       ;;docker
+       ;editorconfig       ; let someone else argue about tabs vs spaces
+       ;;ein               ; tame Jupyter notebooks with emacs
+       (eval +overlay)     ; run code, run (also, repls)
+       ;;gist              ; interacting with github gists
+       ;;lookup             ; navigate your code and its documentation
+       (lsp +lsp)          ; M-x vscode
+       (magit +forge)      ; a git porcelain for Emacs
+       make                ; run make tasks from Emacs
+       ;;pass              ; password manager for nerds
+       ;;pdf               ; pdf enhancements
+       ;;prodigy           ; FIXME managing external services & code builders
+       rgb                 ; creating color strings
+       ;;taskrunner        ; taskrunner for all your projects
+       ;;terraform         ; infrastructure as code
+       ;;tmux              ; an API for interacting with tmux
+       tree-sitter         ; syntax and parsing, sitting in a tree...
+       ;;upload            ; map local to remote projects via ssh/ftp
+
+       :os
+       (:if IS-MAC macos)  ; improve compatibility with macOS
+      (tty                 ; improve the terminal Emacs experience
+       +osc)
+#+end_src
+** Languages
+#+begin_src elisp :tangle init.el
+       :lang
+       (cc +lsp)         ; C > C++ == 1
+       emacs-lisp        ; drown in parentheses
+       (gdscript +lsp)   ; the language you waited for
+       json              ; At least it ain't XML
+       ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       (latex +lsp       ; writing papers in Emacs has never been so fun
+        +latexmk)
+       markdown          ; writing docs for people to ignore
+       (org              ; organize your plain life in plain text
+        +roam2           ; wander around notes
+        +pretty          ; better looking org
+        +dragndrop       ; drag and drop files/images into org buffers
+        +pandoc          ; export-with-pandoc support
+        )
+       (python +lsp      ; beautiful is better than ugly
+        +poetry          ; Python dependency manangement
+        +conda           ; Virtual environment support
+        +pyright         ; The best Python language server
+        +tree-sitter)
+       qt                ; the 'cutest' gui framework ever
+       (sh +lsp          ; she sells {ba,z,fi}sh shells on the C xor
+        +tree-sitter)
+       data              ; config/data formats
+       ;;plantuml          ; diagrams for confusing people more
+       ;;(web +lsp)        ; the tubes
+       ;;csharp            ; unity, .NET, and mono shenanigans
+       ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
+       ;;(go +lsp)         ; the hipster dialect
+       ;;zig               ; C, but simpler
+       ;;lua               ; one-based indices? one-based indices
+       ;;(rust +lsp)       ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
+       ;;julia             ; a better, faster MATLAB
+       ;;kotlin            ; a better, slicker Java(Script)
+       ;;(haskell +lsp)    ; a language that's lazier than I am
+       ;;nix               ; I hereby declare "nix geht mehr!"
+       ;;ocaml             ; an objective camel
+       ;;php               ; perl's insecure younger brother
+       ;;(graphql +lsp)    ; Give queries a REST
+       ;;hy                ; readability of scheme w/ speed of python
+       ;;idris             ; a language you can depend on
+       ;;nim               ; python + lisp at the speed of c
+       ;;purescript        ; javascript, but functional
+       ;;lean              ; for folks with too much to prove
+       ;;ledger            ; be audit you can be
+       ;;sml
+       ;;solidity          ; do you need a blockchain? No.
+       ;;swift             ; who asked for emoji variables?
+       ;;terra             ; Earth and Moon in alignment for performance.
+       ;;agda              ; types of types of types of types...
+       ;;beancount         ; mind the GAAP
+       ;;yaml              ; JSON, but readable
+       ;;clojure           ; java with a lisp
+       ;;common-lisp       ; if you've seen one lisp, you've seen them all
+       ;;coq               ; proofs-as-programs
+       ;;crystal           ; ruby at the speed of c
+       ;;(dart +flutter)   ; paint ui and not much else
+       ;;dhall
+       ;;elixir            ; erlang done right
+       ;;elm               ; care for a cup of TEA?
+       ;;erlang            ; an elegant language for a more civilized age
+       ;;ess               ; emacs speaks statistics
+       ;;factor
+       ;;faust             ; dsp, but you get to keep your soul
+       ;;fortran           ; in FORTRAN, GOD is REAL (unless declared INTEGER)
+       ;;fsharp            ; ML stands for Microsoft's Language
+       ;;fstar             ; (dependent) types and (monadic) effects and Z3
+       ;;racket            ; a DSL for DSLs
+       ;;raku              ; the artist formerly known as perl6
+       ;;rest              ; Emacs as a REST client
+       ;;rst               ; ReST in peace
+       ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
+       ;;scala             ; java, but good
+       ;;(scheme +guile)   ; a fully conniving family of lisps
+#+end_src
+** Email/App/Config
+
+#+begin_src elisp :tangle init.el
+       :email
+       ;;(mu4e +org +gmail)
+       ;;notmuch
+       ;;(wanderlust +gmail)
+
+       :app
+       ;;calendar
+       ;;emms
+       everywhere        ; *leave* Emacs!? You must be joking
+       ;;irc               ; how neckbeards socialize
+       ;(rss +org)        ; emacs as an RSS reader
+       ;;twitter           ; twitter client https://twitter.com/vnought
+
+       :config
+       literate
+       (default +bindings +smartparens))
+#+end_src
+* Code
+** Completion
+#+begin_src elisp
+;; ;;CAPE
+;; (use-package corfu
+;;   :init
+;;   (global-corfu-mode))
+;; (use-package cape
+;;   :bind )
+;; (setq-local completion-at-point-functions
+;;             (mapcar #'cape-company-to-capf
+;;                     (list #'company-file #'company-ispell #'company-dabbrev)))
+;; ;;CODEIUM
+;; ;;COMPANY
+;;     (use-package company
+;;       :defer 0.1
+;;       :config
+;;       (global-company-mode t)
+;;       (setq-default
+;;        company-idle-delay 0.05
+;;        company-require-match nil
+;;        company-minimum-prefix-length 0
+;;        company-frontends '(company-preview-frontend)  ;; get only preview
+;;        ))
+#+end_src
+** Python
+*** Debugger/style
+#+begin_src elisp
+;DEBUGGER
+(after! dap-mode
+  (setq dap-python-debuger 'debugpy))
+;Style
+(use-package! python-black
+  :after python
+  :hook (python-mode . python-black-on-save-mode-enable-dwim))
+#+end_src
+*** Virtual environment
+#+begin_src elisp
+(setq conda-env-autoactivate-mode t)
+(use-package! virtualenvwrapper)
+(after! virtualenvwrapper
+  (setq venv-location "~/.conda/envs/"))
+
+(use-package! conda
+  :ensure t
+  :init
+  (setq conda-anaconda-home (expand-file-name "~/.conda"))
+  (setq conda-env-home-directory (expand-file-name "~/.conda")))
+#+end_src
+*** Keybindings
+#+begin_src elisp
+(map! :n "SPC g p" #'magit-push
+      (:prefix ("SPC c p" . "Python")
+      :desc "run python" :nv "p" #'run-python
+      :desc "activate conda" :nv "a" #'conda-env-activate
+      :desc "deactivate conda" :nv "d" #'conda-env-deactivate
+      ))
+#+end_src
+* Help
+Or just go to doom/help with =SPC-h-d-h=
+** Init
+#+begin_src elisp :tangle init.el
+;;; init.el -*- lexical-binding: t; -*-
+
+;; This file controls what Doom modules are enabled and what order they load
+;; in. Remember to run 'doom sync' after modifying it!
+
+;; NOTE Press 'SPC h d h' (or 'C-h d h' for non-vim users) to access Doom's
+;;      documentation. There you'll find a link to Doom's Module Index where all
+;;      of our modules are listed, including what flags they support.
+
+;; NOTE Move your cursor over a module's name (or its flags) and press 'K' (or
+;;      'C-c c k' for non-vim users) to view its documentation. This works on
+;;      flags as well (those symbols that start with a plus).
+;;
+;;      Alternatively, press 'gd' (or 'C-c c d') on a module to browse its
+;;      directory (for easy access to its source code).
+#+end_src
+** Config
+#+begin_src elisp
+;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
+
+;; Doom exposes five (optional) variables for controlling fonts in Doom:
+;;
+;; - `doom-font' -- the primary font to use
+;; - `doom-variable-pitch-font' -- a non-monospace font (where applicable)
+;; - `doom-big-font' -- used for `doom-big-font-mode'; use this for
+;;   presentations or streaming.
+;; - `doom-unicode-font' -- for unicode glyphs
+;; - `doom-serif-font' -- for the `fixed-pitch-serif' face
+;; See 'C-h v doom-font' for documentation and more examples of what they
+;;
+;; Whenever you reconfigure a package, make sure to wrap your config in an
+;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
+;;
+;;   (after! PACKAGE
+;;     (setq x y))
+;;
+;; The exceptions to this rule:
+;;
+;;   - Setting file/directory variables (like `org-directory')
+;;   - Setting variables which explicitly tell you to set them before their
+;;     package is loaded (see 'C-h v VARIABLE' to look up their documentation).
+;;   - Setting doom variables (which start with 'doom-' or '+').
+;;
+;; Here are some additional functions/macros that will help you configure Doom.
+;;
+;; - `load!' for loading external *.el files relative to this one
+;; - `use-package!' for configuring packages
+;; - `after!' for running code after a package has loaded
+;; - `add-load-path!' for adding directories to the `load-path', relative to
+;;   this file. Emacs searches the `load-path' when you load packages with
+;;   `require' or `use-package'.
+;; - `map!' for binding new keys
+;; To get information about any of these functions/macros, move the cursor over
+;; the highlighted symbol at press 'K' (non-evil users must press 'C-c c k').
+;; This will open documentation for it, including demos of how they are used.
+;; Alternatively, use `C-h o' to look up a symbol (functions, variables, faces,
+;; etc).
+;;
+;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
+;; they are implemented.
+#+end_src
