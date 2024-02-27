@@ -16,7 +16,6 @@ alias lt eza -at --color=always --group-directories-first $* ;tree listing
 alias l. eza -a1 $* | rg "^\." ;show only hidden files
 
 ;Magit aliases
-alias git --no-pager $*
 alias gg magit-status
 ;Aliases for Doom emacs utilities
 alias ds ~/.emacs.d/bin/doom sync

@@ -87,14 +87,13 @@
 
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
-;Window opacity for seeing my beautiful desktop
+;       Window opacity for seeing my beautiful desktop
 (add-to-list 'default-frame-alist '(alpha . 90))
 ;Theme config begins
 (use-package doom-themes
   :ensure t
   :config
-  ;Themes to chooose from
-  ;(load-theme 'doom-tokyo-night  t)
+  ;Default theme
   (load-theme 'doom-dracula  t)
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
