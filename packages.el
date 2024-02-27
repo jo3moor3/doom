@@ -14,20 +14,16 @@
 (package! py-isort)
 (package! python-black)
 ;ORG_____________________
-(package! org-fragtog)
-(package! org-auto-tangle)
 (package! org-modern)
 (package! org-download)
 (package! pandoc)
 (package! ox-pandoc)
+;MATH____________________
+;(package! xenops)
+(package! org-fragtog)
+(package! auctex)
 ;COMPLETION______________
 (package! cape)
-;(package! corfu)
-;MATH____________________
-(package! auctex)
-(package! company-math)
-(package! texfrag)
+(package! corfu)
 ;MISC_____________________
 (package! ssh-agency)
-;(package! lsp-tailwindcss)
-(package! doremi)
