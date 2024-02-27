@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: Tabular
+# uuid: Tabular
+# key: tab
+# condition: t
+# --
+\begin{tabular*}}
+$0
+\end{tabular*}
