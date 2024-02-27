@@ -168,8 +168,7 @@ Single key press keybindings, a help menu, and shortcuts to everything I could e
 #+end_src
 * Visual
 ** Theme
-Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]]
-Tokyo-Night is also a cool one (originally a vscode theme).
+Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]].
 Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][GitHub - doomemacs/themes]]
 #+begin_src elisp
 ;disabling solaire mode for now because of conflicts
