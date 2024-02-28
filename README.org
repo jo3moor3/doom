@@ -9,6 +9,7 @@
 #+latex_class: chameleon
 #+html_content_class: chameleon
 [[file:images/doom_icon.png]]
+
 My ever expanding all consuming configuration for Doom Emacs.
 *** TABLE OF CONTENTS :toc:
 - [[#globals][Globals]]
