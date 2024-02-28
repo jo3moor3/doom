@@ -46,6 +46,77 @@
 
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
 
+;; Add extensions
+(use-package cape
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+)
+
+;; Use Company backends as Capfs.
+(setq-local completion-at-point-functions
+  (mapcar #'cape-company-to-capf
+    (list #'company-files #'company-keywords #'company-dabbrev #'company-ispell)))
+
+(require 'company)
+;; Use the company-dabbrev and company-elisp backends together.
+(setq completion-at-point-functions
+      (list
+       (cape-company-to-capf
+        (apply-partially #'company--multi-backend-adapter
+                         '(company-dabbrev company-elisp)))))
+
+(setq-local completion-at-point-functions
+            (list (cape-capf-buster #'some-caching-capf)))
+
+(use-package corfu
+  ;; Optional customizations
+   :custom
+   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;; (corfu-auto t)                 ;; Enable auto completion
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+  ;; be used globally (M-/).  See also the customization variable
+  ;; `global-corfu-modes' to exclude certain modes.
+  :init
+  (global-corfu-mode))
+
+;; A few more useful configurations...
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
+  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
+
 (map! :g "C-s" #'save-buffer)
 
 (map! :desc "iedit" :nv "C-=" #'iedit-mode)
@@ -187,6 +258,21 @@
 ;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 
+(add-hook 'eshell-mode-hook
+          (lambda ()
+            (setq-local corfu-auto nil)
+            (corfu-mode)))
+
+(defun corfu-send-shell (&rest _)
+  "Send completion candidate when inside comint/eshell."
+  (cond
+   ((and (derived-mode-p 'eshell-mode) (fboundp 'eshell-send-input))
+    (eshell-send-input))
+   ((and (derived-mode-p 'comint-mode)  (fboundp 'comint-send-input))
+    (comint-send-input))))
+
+(advice-add #'corfu-insert :after #'corfu-send-shell)
+
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
@@ -210,12 +296,6 @@
 
 (setq mixed-pitch-variable-pitch-cursor nil)
 
-;Used this function when company was acting up with latex. keeping it around just in case.
-(defun zz/adjust-org-company-backends ()
-  (remove-hook 'after-change-major-mode-hook '+company-init-backends-h)
-  (setq-local company-backends nil))
-;;(add-hook! org-mode (zz/adjust-org-company-backends))
-
 ;Make latex fragments easy to edit/preview
 (after! org (add-hook 'org-mode-hook 'org-fragtog-mode))
 
@@ -229,31 +309,9 @@
       (:prefix ("SPC l" . "link")
       :desc "store org link" :nv "s" #'org-store-link
       :desc "insert org link" :nv "i" #'org-insert-link
-      :desc "insert url" :nv "c" #'org-cliplink
-      :desc "paste image" :nv "d" #'org-download-clipboard
+      :desc "link url" :nv "u" #'org-cliplink
+      :desc "link image" :nv "p" #'org-download-clipboard
       ))
-
-;; ;;CAPE
-;; (use-package corfu
-;;   :init
-;;   (global-corfu-mode))
-;; (use-package cape
-;;   :bind )
-;; (setq-local completion-at-point-functions
-;;             (mapcar #'cape-company-to-capf
-;;                     (list #'company-file #'company-ispell #'company-dabbrev)))
-;; ;;CODEIUM
-;; ;;COMPANY
-;;     (use-package company
-;;       :defer 0.1
-;;       :config
-;;       (global-company-mode t)
-;;       (setq-default
-;;        company-idle-delay 0.05
-;;        company-require-match nil
-;;        company-minimum-prefix-length 0
-;;        company-frontends '(company-preview-frontend)  ;; get only preview
-;;        ))
 
 ;DEBUGGER
 (after! dap-mode

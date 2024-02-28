@@ -9,11 +9,12 @@
 #+latex_class: chameleon
 #+html_content_class: chameleon
 [[file:images/doom_icon.png]]
-
+My ever expanding all consuming configuration for Doom Emacs.
 *** TABLE OF CONTENTS :toc:
 - [[#globals][Globals]]
   - [[#constants][Constants]]
   - [[#convenience][Convenience]]
+  - [[#completion][Completion]]
   - [[#keybindings][Keybindings]]
 - [[#visual][Visual]]
   - [[#theme][Theme]]
@@ -23,6 +24,7 @@
 - [[#eshell][Eshell]]
   - [[#profile][Profile]]
   - [[#aliases][Aliases]]
+  - [[#completion-1][Completion]]
 - [[#org][ORG]]
   - [[#setup][Setup]]
   - [[#aesthetics][Aesthetics]]
@@ -41,7 +43,7 @@
   - [[#languages][Languages]]
   - [[#emailappconfig][Email/App/Config]]
 - [[#code][Code]]
-  - [[#completion][Completion]]
+  - [[#codeium][Codeium]]
   - [[#python][Python]]
 - [[#help][Help]]
   - [[#init-1][Init]]
@@ -114,6 +116,91 @@ Strange bug where an error occurs after reloading, only fixed by subsequently re
                     buffer)))
 
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
+#+end_src
+** Completion
+*** Cape/Company
+**** Cape functions
+#+begin_src emacs-lisp
+;; Add extensions
+(use-package cape
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+)
+#+end_src
+**** Company adapter
+Transforming company backends to Capfs.
+#+begin_src emacs-lisp
+;; Use Company backends as Capfs.
+(setq-local completion-at-point-functions
+  (mapcar #'cape-company-to-capf
+    (list #'company-files #'company-keywords #'company-dabbrev #'company-ispell)))
+#+end_src
+Merging company backends.
+#+begin_src emacs-lisp
+(require 'company)
+;; Use the company-dabbrev and company-elisp backends together.
+(setq completion-at-point-functions
+      (list
+       (cape-company-to-capf
+        (apply-partially #'company--multi-backend-adapter
+                         '(company-dabbrev company-elisp)))))
+#+end_src
+**** Capf buster
+Setting up cache busting so theres always a fresh set of canadites.
+#+begin_src emacs-lisp
+(setq-local completion-at-point-functions
+            (list (cape-capf-buster #'some-caching-capf)))
+#+end_src
+*** Corfu
+#+begin_src emacs-lisp
+(use-package corfu
+  ;; Optional customizations
+   :custom
+   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;; (corfu-auto t)                 ;; Enable auto completion
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+  ;; be used globally (M-/).  See also the customization variable
+  ;; `global-corfu-modes' to exclude certain modes.
+  :init
+  (global-corfu-mode))
+
+;; A few more useful configurations...
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
+  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
 #+end_src
 ** Keybindings
 *** Save
@@ -340,6 +427,23 @@ alias ff find-file-other-window $1
 alias d dired $1
 alias cdp cd-to-project
 #+end_src
+** Completion
+#+begin_src emacs-lisp
+(add-hook 'eshell-mode-hook
+          (lambda ()
+            (setq-local corfu-auto nil)
+            (corfu-mode)))
+
+(defun corfu-send-shell (&rest _)
+  "Send completion candidate when inside comint/eshell."
+  (cond
+   ((and (derived-mode-p 'eshell-mode) (fboundp 'eshell-send-input))
+    (eshell-send-input))
+   ((and (derived-mode-p 'comint-mode)  (fboundp 'comint-send-input))
+    (comint-send-input))))
+
+(advice-add #'corfu-insert :after #'corfu-send-shell)
+#+end_src
 * ORG
 ** Setup
 Important org configurations, [[https://github.com/abo-abo/org-download][org-download]]
@@ -373,12 +477,6 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
 I use latex to render math in org.
 [[https://github.com/io12/org-fragtog][org-fragtog]] is wonderfully convenient, [[https://ctan.org/pkg/dvipng?lang=en][dvipng]] is a must for quick preview generation, and [[https://www.gnu.org/software/auctex/][AUCTeX]] is required for this all to work.
 #+begin_src elisp
-;Used this function when company was acting up with latex. keeping it around just in case.
-(defun zz/adjust-org-company-backends ()
-  (remove-hook 'after-change-major-mode-hook '+company-init-backends-h)
-  (setq-local company-backends nil))
-;;(add-hook! org-mode (zz/adjust-org-company-backends))
-
 ;Make latex fragments easy to edit/preview
 (after! org (add-hook 'org-mode-hook 'org-fragtog-mode))
 
@@ -394,8 +492,8 @@ I use latex to render math in org.
       (:prefix ("SPC l" . "link")
       :desc "store org link" :nv "s" #'org-store-link
       :desc "insert org link" :nv "i" #'org-insert-link
-      :desc "insert url" :nv "c" #'org-cliplink
-      :desc "paste image" :nv "d" #'org-download-clipboard
+      :desc "link url" :nv "u" #'org-cliplink
+      :desc "link image" :nv "p" #'org-download-clipboard
       ))
 #+end_src
 * Custom
@@ -481,7 +579,7 @@ Be careful with these....
        ;;layout            ; auie,ctsrnm is the superior home row
 
        :completion
-       ;;company           ; the ultimate code completion backend
+       company           ; the ultimate code completion backend
        ;;helm              ; the *other* search engine for love and life
        ;;ido               ; the other *other* search engine...
        ;;ivy               ; a search engine for love and life
@@ -688,30 +786,7 @@ Be careful with these....
        (default +bindings +smartparens))
 #+end_src
 * Code
-** Completion
-#+begin_src elisp
-;; ;;CAPE
-;; (use-package corfu
-;;   :init
-;;   (global-corfu-mode))
-;; (use-package cape
-;;   :bind )
-;; (setq-local completion-at-point-functions
-;;             (mapcar #'cape-company-to-capf
-;;                     (list #'company-file #'company-ispell #'company-dabbrev)))
-;; ;;CODEIUM
-;; ;;COMPANY
-;;     (use-package company
-;;       :defer 0.1
-;;       :config
-;;       (global-company-mode t)
-;;       (setq-default
-;;        company-idle-delay 0.05
-;;        company-require-match nil
-;;        company-minimum-prefix-length 0
-;;        company-frontends '(company-preview-frontend)  ;; get only preview
-;;        ))
-#+end_src
+** Codeium
 ** Python
 *** Debugger/style
 #+begin_src elisp
