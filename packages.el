@@ -25,5 +25,7 @@
 ;COMPLETION______________
 (package! cape)
 (package! corfu)
+(package! orderless)
+(package! pcmpl-args)
 ;MISC_____________________
 (package! ssh-agency)

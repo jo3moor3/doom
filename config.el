@@ -1,11 +1,15 @@
-;May help some performance issues
+;May help sreen flickering
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil) ;Completion now triggers via CTRL-SPC
+(setq company-idle-delay nil)
 
 (when (version< "29.0.50" emacs-version)
   (pixel-scroll-precision-mode))
+
+(setq which-key-idle-delay 0.5)
+
+(setq yas-triggers-in-field t)
 
 (after! ispell
   (setenv "LANG" "en_US.UTF-8")
@@ -81,7 +85,10 @@
                          '(company-dabbrev company-elisp)))))
 
 (setq-local completion-at-point-functions
-            (list (cape-capf-buster #'some-caching-capf)))
+            (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
+
+;(setq-local completion-at-point-functions
+;            (list (cape-capf-buster #'some-caching-capf)))
 
 (use-package corfu
   ;; Optional customizations
@@ -95,7 +102,6 @@
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
   ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
   ;; be used globally (M-/).  See also the customization variable
   ;; `global-corfu-modes' to exclude certain modes.
@@ -117,6 +123,38 @@
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
 
+(use-package corfu
+  ;:custom
+  ;; (corfu-separator ?_) ;; Set to orderless separator, if not using space
+  :bind
+  ;; Configure SPC for separator insertion
+  (:map corfu-map ("SPC" . corfu-insert-separator)))
+;; Optionally use the `orderless' completion style.
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package lsp-mode
+  :custom
+  (lsp-completion-provider :none) ;; we use Corfu!
+  :init
+  (defun my/orderless-dispatch-flex-first (_pattern index _total)
+    (and (eq index 0) 'orderless-flex))
+
+  (defun my/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(orderless))) ;; Configure orderless
+
+   ;; Optionally configure the first word as flex filtered.
+    (add-hook 'orderless-style-dispatchers #'my/orderless-dispatch-flex-first nil 'local)
+  :hook
+  (lsp-completion-mode . my/lsp-mode-setup-completion))
+
 (map! :g "C-s" #'save-buffer)
 
 (map! :desc "iedit" :nv "C-=" #'iedit-mode)
@@ -127,7 +165,9 @@
       "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
 
 (after! undo-fu
-  (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
+  (map! :map undo-fu-mode-map
+        "C-S-z" #'undo-fu-only-redo
+         :nvi "C-z" #'undo-fu-only-undo))
 
 (map! :map dired-mode-map
       :n "h" #'dired-up-directory
@@ -258,6 +298,10 @@
 ;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 
+;;Only setup required besides downloading the package
+(require 'pcmpl-args)
+
+;;Corfu setup
 (add-hook 'eshell-mode-hook
           (lambda ()
             (setq-local corfu-auto nil)
@@ -273,31 +317,107 @@
 
 (advice-add #'corfu-insert :after #'corfu-send-shell)
 
+(after! spell-fu
+  (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
+
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
 (add-hook 'org-mode-hook 'org-eldoc-load))
+(setq org-use-property-inheritance t)
 ;org download for pasting images
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 
+(setq org-ellipsis " ▾")
+(setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a.")))
 (after! org
-(setq org-modern-star nil)
 (setq org-startup-folded t)
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
-(add-hook 'org-mode-hook #'mixed-pitch-mode)
-;Make latex fragments easy to edit/preview
-(add-hook 'org-mode-hook 'org-fragtog-mode))
+(add-hook 'org-mode-hook #'mixed-pitch-mode))
 
 (setq mixed-pitch-variable-pitch-cursor nil)
 
+(use-package! org-modern
+  :hook (org-mode . org-modern-mode)
+  :config
+  (setq org-modern-star '("◉" "○" "✸" "✿" "✤" "✜" "◆" "▶")
+        org-modern-table-vertical 1
+        org-modern-table-horizontal 0.2
+        org-modern-list '((43 . "➤")
+                          (45 . "–")
+                          (42 . "•"))
+        org-modern-todo-faces
+        '(("TODO" :inverse-video t :inherit org-todo)
+          ("PROJ" :inverse-video t :inherit +org-todo-project)
+          ("STRT" :inverse-video t :inherit +org-todo-active)
+          ("[-]"  :inverse-video t :inherit +org-todo-active)
+          ("HOLD" :inverse-video t :inherit +org-todo-onhold)
+          ("WAIT" :inverse-video t :inherit +org-todo-onhold)
+          ("[?]"  :inverse-video t :inherit +org-todo-onhold)
+          ("KILL" :inverse-video t :inherit +org-todo-cancel)
+          ("NO"   :inverse-video t :inherit +org-todo-cancel))
+        org-modern-footnote
+        (cons nil (cadr org-script-display))
+        org-modern-block-fringe nil
+        org-modern-block-name
+        '((t . t)
+          ("src" "»" "«")
+          ("example" "»–" "–«")
+          ("quote" "❝" "❞")
+          ("export" "⏩" "⏪"))
+        org-modern-progress nil
+        org-modern-priority nil
+        org-modern-horizontal-rule (make-string 36 ?─)
+        org-modern-keyword
+        '((t . t)
+          ("title" . "𝙏")
+          ("subtitle" . "𝙩")
+          ("author" . "𝘼")
+          ("email" . #("" 0 1 (display (raise -0.14))))
+          ("date" . "𝘿")
+          ("property" . "☸")
+          ("options" . "⌥")
+          ("startup" . "⏻")
+          ("macro" . "𝓜")
+          ("bind" . #("" 0 1 (display (raise -0.1))))
+          ("bibliography" . "")
+          ("print_bibliography" . #("" 0 1 (display (raise -0.1))))
+          ("cite_export" . "⮭")
+          ("print_glossary" . #("ᴬᶻ" 0 1 (display (raise -0.1))))
+          ("glossary_sources" . #("" 0 1 (display (raise -0.14))))
+          ("include" . "⇤")
+          ("setupfile" . "⇚")
+          ("html_head" . "🅷")
+          ("html" . "🅗")
+          ("latex_class" . "🄻")
+          ("latex_class_options" . #("🄻" 1 2 (display (raise -0.14))))
+          ("latex_header" . "🅻")
+          ("latex_header_extra" . "🅻⁺")
+          ("latex" . "🅛")
+          ("beamer_theme" . "🄱")
+          ("beamer_color_theme" . #("🄱" 1 2 (display (raise -0.12))))
+          ("beamer_font_theme" . "🄱𝐀")
+          ("beamer_header" . "🅱")
+          ("beamer" . "🅑")
+          ("attr_latex" . "🄛")
+          ("attr_html" . "🄗")
+          ("attr_org" . "⒪")
+          ("call" . #("" 0 1 (display (raise -0.15))))
+          ("name" . "⁍")
+          ("header" . "›")
+          ("caption" . "☰")
+          ("results" . "🠶")))
+  (custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
+
 ;Make latex fragments easy to edit/preview
-(after! org (add-hook 'org-mode-hook 'org-fragtog-mode))
+(after! org
+  (add-hook 'org-mode-hook 'org-fragtog-mode))
 
 ;;Setup for previews. dvipng is the fastest, but may not support all
 (setq org-preview-latex-default-process 'dvipng)
@@ -333,7 +453,7 @@
   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 
 (map! :n "SPC g p" #'magit-push
-      (:prefix ("SPC c p" . "Python")
+      (:prefix ("M-p" . "Python")
       :desc "run python" :nv "p" #'run-python
       :desc "activate conda" :nv "a" #'conda-env-activate
       :desc "deactivate conda" :nv "d" #'conda-env-deactivate

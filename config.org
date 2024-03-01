@@ -4,61 +4,27 @@
 #+title: Doom Config
 #+PROPERTY: header-args :tangle config.el
 #+author:    Joe Moore
-#+email:     jo3moore@gmail.com
-*** TABLE OF CONTENTS :toc:
-- [[#globals][Globals]]
-  - [[#constants][Constants]]
-  - [[#convenience][Convenience]]
-  - [[#completion][Completion]]
-  - [[#keybindings][Keybindings]]
-- [[#visual][Visual]]
-  - [[#theme][Theme]]
-  - [[#fontsdocument][Fonts/Document]]
-  - [[#files][Files]]
-  - [[#dashboard][Dashboard]]
-- [[#eshell][Eshell]]
-  - [[#profile][Profile]]
-  - [[#aliases][Aliases]]
-  - [[#completion-1][Completion]]
-- [[#org][ORG]]
-  - [[#setup][Setup]]
-  - [[#aesthetics][Aesthetics]]
-  - [[#latex][LaTeX]]
-  - [[#keybindings-1][Keybindings]]
-- [[#custom][Custom]]
-  - [[#variables][Variables]]
-  - [[#faces][Faces]]
-- [[#packages][Packages]]
-- [[#init][Init]]
-  - [[#inputcompletion][Input/Completion]]
-  - [[#ui][UI]]
-  - [[#editoremacs][Editor/Emacs]]
-  - [[#terminalscheckers][Terminals/Checkers]]
-  - [[#toolsos][Tools/OS]]
-  - [[#languages][Languages]]
-  - [[#emailappconfig][Email/App/Config]]
-- [[#code][Code]]
-  - [[#codeium][Codeium]]
-  - [[#python][Python]]
-- [[#help][Help]]
-  - [[#init-1][Init]]
-  - [[#config][Config]]
-
+#+email:    jo3moore@gmail.com
 * Globals
 ** Constants
 *** Disabling
+Stop screen flickering, inhibit the quit confirmation, and disable company completion.
 #+begin_src elisp
-;May help some performance issues
+;May help sreen flickering
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil) ;Completion now triggers via CTRL-SPC
-
+(setq company-idle-delay nil)
 #+end_src
 *** Enabling
+Better scrolling, quicker which-key, and nested snippets.
 #+begin_src emacs-lisp
 (when (version< "29.0.50" emacs-version)
   (pixel-scroll-precision-mode))
+
+(setq which-key-idle-delay 0.5)
+
+(setq yas-triggers-in-field t)
 #+end_src
 *** Spelling
 Adding both French and English dictionaries, as well as a keybinding for stepping through document wide spellchecks.
@@ -155,13 +121,20 @@ Merging company backends.
         (apply-partially #'company--multi-backend-adapter
                          '(company-dabbrev company-elisp)))))
 #+end_src
+**** Super Capf
+Merging multiple Capfs.
+#+begin_src emacs-lisp
+(setq-local completion-at-point-functions
+            (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
+#+end_src
 **** Capf buster
 Setting up cache busting so theres always a fresh set of canadites.
 #+begin_src emacs-lisp
-(setq-local completion-at-point-functions
-            (list (cape-capf-buster #'some-caching-capf)))
+;(setq-local completion-at-point-functions
+;            (list (cape-capf-buster #'some-caching-capf)))
 #+end_src
 *** Corfu
+**** Defaults
 #+begin_src emacs-lisp
 (use-package corfu
   ;; Optional customizations
@@ -175,7 +148,6 @@ Setting up cache busting so theres always a fresh set of canadites.
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
   ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
   ;; be used globally (M-/).  See also the customization variable
   ;; `global-corfu-modes' to exclude certain modes.
@@ -197,6 +169,40 @@ Setting up cache busting so theres always a fresh set of canadites.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
 #+end_src
+**** orderless
+#+begin_src emacs-lisp
+(use-package corfu
+  ;:custom
+  ;; (corfu-separator ?_) ;; Set to orderless separator, if not using space
+  :bind
+  ;; Configure SPC for separator insertion
+  (:map corfu-map ("SPC" . corfu-insert-separator)))
+;; Optionally use the `orderless' completion style.
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package lsp-mode
+  :custom
+  (lsp-completion-provider :none) ;; we use Corfu!
+  :init
+  (defun my/orderless-dispatch-flex-first (_pattern index _total)
+    (and (eq index 0) 'orderless-flex))
+
+  (defun my/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(orderless))) ;; Configure orderless
+
+   ;; Optionally configure the first word as flex filtered.
+    (add-hook 'orderless-style-dispatchers #'my/orderless-dispatch-flex-first nil 'local)
+  :hook
+  (lsp-completion-mode . my/lsp-mode-setup-completion))
+#+end_src
 ** Keybindings
 *** Save
 It's the simple things.
@@ -211,12 +217,15 @@ Simultaneous editing via iedit and comfortable searching with consult.
 (map! :after evil :gnvi "C-f" #'consult-line)
 #+end_src
 *** Undo and everywhere
+Standard undo/redo and bringing Emacs everywhere.
 #+begin_src emacs-lisp
 (map! :map emacs-everywhere-mode-map
       "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
 
 (after! undo-fu
-  (map! :map undo-fu-mode-map "C-?" #'undo-fu-only-redo))
+  (map! :map undo-fu-mode-map
+        "C-S-z" #'undo-fu-only-redo
+         :nvi "C-z" #'undo-fu-only-undo))
 #+end_src
 *** Dired and dashboard
 Making Dired behave more like ranger without installing the whole ranger conversion package.
@@ -373,6 +382,9 @@ Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash imag
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 #+end_src
 * Eshell
+I was always more of a vterm guy until I recognized a few use cases for the Eshell.
+Namely: tighter Emacs integration (virtual environments) and using Emacs commands.
+In addition to that I found some great completion that make me miss Zsh much less.
 ** Profile
 Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
 I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
@@ -422,8 +434,18 @@ alias ff find-file-other-window $1
 alias d dired $1
 alias cdp cd-to-project
 #+end_src
+*** glslViewer
+#+begin_src emacs-lisp :tangle eshell/aliases
+alias gl glslViewer $1
+#+end_src
 ** Completion
+With the addition of [[https://github.com/JonWaltman/pcmpl-args.el][pcmpl-args]]  this completion is almost on par with my native Zsh terminal.
+If you use Eshell you need to try to this out. The added Corfu functionality is just the cherry on top.
 #+begin_src emacs-lisp
+;;Only setup required besides downloading the package
+(require 'pcmpl-args)
+
+;;Corfu setup
 (add-hook 'eshell-mode-hook
           (lambda ()
             (setq-local corfu-auto nil)
@@ -439,41 +461,120 @@ alias cdp cd-to-project
 
 (advice-add #'corfu-insert :after #'corfu-send-shell)
 #+end_src
-* ORG
+* Org
 ** Setup
 Important org configurations, [[https://github.com/abo-abo/org-download][org-download]]
 #+begin_src elisp
+(after! spell-fu
+  (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
+
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
 (add-hook 'org-mode-hook 'org-eldoc-load))
+(setq org-use-property-inheritance t)
 ;org download for pasting images
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
 ** Aesthetics
+*** org vanilla
 #+begin_src emacs-lisp
+(setq org-ellipsis " ▾")
+(setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a.")))
 (after! org
-(setq org-modern-star nil)
 (setq org-startup-folded t)
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
-(add-hook 'org-mode-hook #'mixed-pitch-mode)
-;Make latex fragments easy to edit/preview
-(add-hook 'org-mode-hook 'org-fragtog-mode))
+(add-hook 'org-mode-hook #'mixed-pitch-mode))
 
 (setq mixed-pitch-variable-pitch-cursor nil)
+#+end_src
+*** org-modern
+#+begin_src emacs-lisp
+(use-package! org-modern
+  :hook (org-mode . org-modern-mode)
+  :config
+  (setq org-modern-star '("◉" "○" "✸" "✿" "✤" "✜" "◆" "▶")
+        org-modern-table-vertical 1
+        org-modern-table-horizontal 0.2
+        org-modern-list '((43 . "➤")
+                          (45 . "–")
+                          (42 . "•"))
+        org-modern-todo-faces
+        '(("TODO" :inverse-video t :inherit org-todo)
+          ("PROJ" :inverse-video t :inherit +org-todo-project)
+          ("STRT" :inverse-video t :inherit +org-todo-active)
+          ("[-]"  :inverse-video t :inherit +org-todo-active)
+          ("HOLD" :inverse-video t :inherit +org-todo-onhold)
+          ("WAIT" :inverse-video t :inherit +org-todo-onhold)
+          ("[?]"  :inverse-video t :inherit +org-todo-onhold)
+          ("KILL" :inverse-video t :inherit +org-todo-cancel)
+          ("NO"   :inverse-video t :inherit +org-todo-cancel))
+        org-modern-footnote
+        (cons nil (cadr org-script-display))
+        org-modern-block-fringe nil
+        org-modern-block-name
+        '((t . t)
+          ("src" "»" "«")
+          ("example" "»–" "–«")
+          ("quote" "❝" "❞")
+          ("export" "⏩" "⏪"))
+        org-modern-progress nil
+        org-modern-priority nil
+        org-modern-horizontal-rule (make-string 36 ?─)
+        org-modern-keyword
+        '((t . t)
+          ("title" . "𝙏")
+          ("subtitle" . "𝙩")
+          ("author" . "𝘼")
+          ("email" . #("" 0 1 (display (raise -0.14))))
+          ("date" . "𝘿")
+          ("property" . "☸")
+          ("options" . "⌥")
+          ("startup" . "⏻")
+          ("macro" . "𝓜")
+          ("bind" . #("" 0 1 (display (raise -0.1))))
+          ("bibliography" . "")
+          ("print_bibliography" . #("" 0 1 (display (raise -0.1))))
+          ("cite_export" . "⮭")
+          ("print_glossary" . #("ᴬᶻ" 0 1 (display (raise -0.1))))
+          ("glossary_sources" . #("" 0 1 (display (raise -0.14))))
+          ("include" . "⇤")
+          ("setupfile" . "⇚")
+          ("html_head" . "🅷")
+          ("html" . "🅗")
+          ("latex_class" . "🄻")
+          ("latex_class_options" . #("🄻" 1 2 (display (raise -0.14))))
+          ("latex_header" . "🅻")
+          ("latex_header_extra" . "🅻⁺")
+          ("latex" . "🅛")
+          ("beamer_theme" . "🄱")
+          ("beamer_color_theme" . #("🄱" 1 2 (display (raise -0.12))))
+          ("beamer_font_theme" . "🄱𝐀")
+          ("beamer_header" . "🅱")
+          ("beamer" . "🅑")
+          ("attr_latex" . "🄛")
+          ("attr_html" . "🄗")
+          ("attr_org" . "⒪")
+          ("call" . #("" 0 1 (display (raise -0.15))))
+          ("name" . "⁍")
+          ("header" . "›")
+          ("caption" . "☰")
+          ("results" . "🠶")))
+  (custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
 #+end_src
 ** LaTeX
 I use latex to render math in org.
 [[https://github.com/io12/org-fragtog][org-fragtog]] is wonderfully convenient, [[https://ctan.org/pkg/dvipng?lang=en][dvipng]] is a must for quick preview generation, and [[https://www.gnu.org/software/auctex/][AUCTeX]] is required for this all to work.
 #+begin_src elisp
 ;Make latex fragments easy to edit/preview
-(after! org (add-hook 'org-mode-hook 'org-fragtog-mode))
+(after! org
+  (add-hook 'org-mode-hook 'org-fragtog-mode))
 
 ;;Setup for previews. dvipng is the fastest, but may not support all
 (setq org-preview-latex-default-process 'dvipng)
@@ -561,6 +662,8 @@ Be careful with these....
 ;COMPLETION______________
 (package! cape)
 (package! corfu)
+(package! orderless)
+(package! pcmpl-args)
 ;MISC_____________________
 (package! ssh-agency)
 #+end_src
@@ -601,7 +704,7 @@ Be careful with these....
        ophints           ; highlight the region an operation acts on
        (popup +defaults)   ; tame sudden yet inevitable temporary windows
        ;;tabs              ; a tab bar for Emacs
-       ;(treemacs          ; a project drawer, like neotree but cooler
+       ;;(treemacs          ; a project drawer, like neotree but cooler
        ; +lsp +icons )
        ;;unicode           ; extended unicode support for various languages
        (vc-gutter +pretty) ; vcs diff in the fringe
@@ -613,29 +716,29 @@ Be careful with these....
 ** Editor/Emacs
 #+begin_src elisp :tangle init.el
        :editor
-       (evil +everywhere); come to the dark side, we have cookies
-       file-templates    ; auto-snippets for empty files
-       fold              ; (nigh) universal code folding
-       (format +onsave)  ; automated prettiness
+       (evil +everywhere)  ; come to the dark side, we have cookies
+       file-templates      ; auto-snippets for empty files
+       fold                ; (nigh) universal code folding
+       (format +onsave)    ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
        ;;lispy             ; vim for lisp, for people who don't like vim
        ;;multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        ;;parinfer          ; turn lisp into python, sort of
        ;;rotate-text       ; cycle region at point between text candidates
-       snippets          ; my elves. They type so I don't have to
+       snippets            ; my elves. They type so I don't have to
        ;;word-wrap         ; soft wrapping with language-aware indent
 
        :emacs
-       (dired             ; making dired pretty [functional]
+       (dired              ; making dired pretty [functional]
         +icons
         )
-       electric          ; smarter, keyword-based electric-indent
-       (ibuffer         ; interactive buffer management
+       electric            ; smarter, keyword-based electric-indent
+       (ibuffer            ; interactive buffer management
         +icons
         )
-       undo              ; persistent, smarter undo for your inevitable mistakes
-       vc                ; version-control and Emacs, sitting in a tree
+       undo                ; persistent, smarter undo for your inevitable mistakes
+       vc                  ; version-control and Emacs, sitting in a tree
 #+end_src
 ** Terminals/Checkers
 #+begin_src elisp :tangle init.el
@@ -657,14 +760,14 @@ Be careful with these....
        :tools
        ;;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
-       (debugger +lsp)         ; FIXME stepping through code, to help you add bugs
+       (debugger +lsp)     ; FIXME stepping through code, to help you add bugs
        direnv
        ;;docker
        ;editorconfig       ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
        ;;gist              ; interacting with github gists
-       ;;lookup             ; navigate your code and its documentation
+       ;;lookup            ; navigate your code and its documentation
        (lsp +lsp)          ; M-x vscode
        (magit +forge)      ; a git porcelain for Emacs
        make                ; run make tasks from Emacs
@@ -675,7 +778,7 @@ Be careful with these....
        ;;taskrunner        ; taskrunner for all your projects
        ;;terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
-       tree-sitter         ; syntax and parsing, sitting in a tree...
+       ;;tree-sitter       ; syntax and parsing, sitting in a tree...
        ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
@@ -703,11 +806,9 @@ Be careful with these....
        (python +lsp      ; beautiful is better than ugly
         +poetry          ; Python dependency manangement
         +conda           ; Virtual environment support
-        +pyright         ; The best Python language server
-        +tree-sitter)
+        +pyright)        ; The best Python language server
        qt                ; the 'cutest' gui framework ever
-       (sh +lsp          ; she sells {ba,z,fi}sh shells on the C xor
-        +tree-sitter)
+       (sh +lsp)         ; she sells {ba,z,fi}sh shells on the C xor
        data              ; config/data formats
        ;;plantuml          ; diagrams for confusing people more
        ;;(web +lsp)        ; the tubes
@@ -806,10 +907,10 @@ Be careful with these....
   (setq conda-anaconda-home (expand-file-name "~/.conda"))
   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 #+end_src
-*** Keybindings
+*** Kebindings
 #+begin_src elisp
 (map! :n "SPC g p" #'magit-push
-      (:prefix ("SPC c p" . "Python")
+      (:prefix ("M-p" . "Python")
       :desc "run python" :nv "p" #'run-python
       :desc "activate conda" :nv "a" #'conda-env-activate
       :desc "deactivate conda" :nv "d" #'conda-env-deactivate

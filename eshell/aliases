@@ -28,3 +28,5 @@ alias f find-file $1
 alias ff find-file-other-window $1
 alias d dired $1
 alias cdp cd-to-project
+
+alias gl glslViewer $1
