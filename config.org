@@ -8,13 +8,33 @@
 * Globals
 ** Constants
 *** Disabling
+**** Niceties
 Stop screen flickering, inhibit the quit confirmation, and disable company completion.
 #+begin_src elisp
 ;May help sreen flickering
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
-
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil)
+(setq company-idle-delay nil) ;Disable company auto-complete
+#+end_src
+**** No flyspell list
+I can manually spellcheck in certain files. I don't need a million notifications about all the spelling errors in my literate config's code blocks.
+#+begin_src emacs-lisp
+(defvar no-flyspell-list '("config.org"))
+
+(defun turn-off-flyspell-if-match ()
+  (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
+      (flyspell-mode -1)))
+
+(add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+#+end_src
+**** No line numbers list
+List of modes that don't neccesarily benefit from having line numbers.
+#+begin_src emacs-lisp
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
 #+end_src
 *** Enabling
 Better scrolling, quicker which-key, and nested snippets.
@@ -35,6 +55,7 @@ Adding both French and English dictionaries, as well as a keybinding for steppin
   (ispell-set-spellchecker-params)
   (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
 (map! :n "SPC I" #'ispell)
+(map! :n "C-S-i" #'ispell-word)
 #+end_src
 *** Info
 My name, email, and the location of my projects.
@@ -45,7 +66,8 @@ My name, email, and the location of my projects.
 #+end_src
 ** Convenience
 *** Reloading
-Strange bug where an error occurs after reloading, only fixed by subsequently reloading org.
+Strange bug with flyspell where an error occurs after reloading, only fixed by subsequently reloading org.
+I'll work on a cleaner fix for this at some point.
 #+begin_src emacs-lisp
 (defun reload_all ()
 (interactive)
@@ -169,7 +191,32 @@ Setting up cache busting so theres always a fresh set of canadites.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
 #+end_src
+**** candidate overlay
+Need to make the keybindings more doom like.
+#+begin_src emacs-lisp
+  (use-package corfu-candidate-overlay
+    :after corfu
+    :config
+    ;; enable corfu-candidate-overlay mode globally
+    ;; this relies on having corfu-auto set to nil
+    (corfu-candidate-overlay-mode +1)
+
+    (global-set-key (kbd "M-<tab>") 'completion-at-point)
+    ;; bind Ctrl + Shift + Tab to trigger completion of the first candidate
+    ;; (keybing <iso-lefttab> may not work for your keyboard model)
+    (global-set-key (kbd "C-<iso-tab>") 'corfu-candidate-overlay-complete-at-point))
+#+end_src
+**** prescient
+I'm using [[https://github.com/radian-software/prescient.el][prescient]] to handle sorting/filtering of the corfu completions.
+#+begin_src emacs-lisp :tangle packages.el
+(package! prescient)
+(package! corfu-prescient)
+#+end_src
+#+begin_src emacs-lisp
+(corfu-prescient-mode 1)
+#+end_src
 **** orderless
+[[https://github.com/oantolin/orderless][Orderless]] is an interesting completion style I've been testing out.
 #+begin_src emacs-lisp
 (use-package corfu
   ;:custom
@@ -212,7 +259,7 @@ It's the simple things.
 *** Search, find, and replace
 Simultaneous editing via iedit and comfortable searching with consult.
 #+begin_src emacs-lisp
-(map! :desc "iedit" :nv "C-=" #'iedit-mode)
+(map! :desc "iedit" :nv "C-;" #'iedit-mode)
 
 (map! :after evil :gnvi "C-f" #'consult-line)
 #+end_src
@@ -264,8 +311,8 @@ Single key press keybindings, a help menu, and shortcuts to everything I could e
 #+end_src
 * Visual
 ** Theme
-Using Dracula theme currently (very unique I know) as it was easy to have it system wide: [[https://draculatheme.com/][Dracula — Dark theme for 300+ apps]].
-Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][GitHub - doomemacs/themes]]
+Using [[https://draculatheme.com/][Dracula theme]] currently (very unique I know) as it was easy to have it system wide.
+Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][doomemacs/themes]]
 #+begin_src elisp
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
@@ -284,9 +331,8 @@ Other themes prepackaged in Doom can be viewed here at [[https://github.com/doom
   (doom-themes-visual-bell-config)
   ;; Enable custom neotree theme (all-the-icons must be installed!)
   (doom-themes-neotree-config)
-  ;; or for treemacs users
-  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-  (doom-themes-treemacs-config)
+  (setq doom-themes-treemacs-theme "doom-colors") ;; or for treemacs users
+  ;(doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 #+end_src
@@ -297,15 +343,43 @@ Setting up font for code/mono space (JetBrains) and for org/variable pitch (Aleg
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
 
-;Relative line numbers is nice for vim(evil) movement!
-(setq display-line-numbers-type 'relative)
-
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
   :init
   (setq visual-fill-column-width 120
         visual-fill-column-center-text t
         visual-fill-column-fringes-outside-margins nil))
+#+end_src
+** Faces
+Mosty org customizations right now.
+#+begin_src elisp :tangle custom.el
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ `(corfu-default ((t (:background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg)))))
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "tan"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
+ '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
+ '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
+ '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
+ '(org-level-5 ((t (:height 1.15))))
+ '(org-level-6 ((t (:height 1.1))))
+ '(org-level-7 ((t (:height 1.0))))
+ '(org-level-8 ((t (:height 1.0))))
+ '(org-link ((t (:foreground "lavender" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 #+end_src
 ** Files
 #+begin_src emacs-lisp
@@ -384,7 +458,7 @@ Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash imag
 * Eshell
 I was always more of a vterm guy until I recognized a few use cases for the Eshell.
 Namely: tighter Emacs integration (virtual environments) and using Emacs commands.
-In addition to that I found some great completion that make me miss Zsh much less.
+In addition to that I found some great completion that make me miss Zsh much less. But there is still a ways to go.
 ** Profile
 Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
 I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
@@ -436,7 +510,7 @@ alias cdp cd-to-project
 #+end_src
 *** glslViewer
 #+begin_src emacs-lisp :tangle eshell/aliases
-alias gl glslViewer $1
+alias gl glslViewer $1.frag
 #+end_src
 ** Completion
 With the addition of [[https://github.com/JonWaltman/pcmpl-args.el][pcmpl-args]]  this completion is almost on par with my native Zsh terminal.
@@ -592,47 +666,6 @@ I use latex to render math in org.
       :desc "link image" :nv "p" #'org-download-clipboard
       ))
 #+end_src
-* Custom
-Be careful with these....
-** Variables
-#+begin_src elisp :tangle custom.el
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages '(s))
- '(warning-suppress-types '((org-element-cache) (org-element-cache) (defvaralias))))
-#+end_src
-** Faces
-#+begin_src elisp :tangle custom.el
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-block ((t (:inherit fixed-pitch))))
- '(org-code ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-info ((t (:foreground "dark orange"))))
- '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
- '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
- '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
- '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
- '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
- '(org-level-5 ((t (:height 1.15))))
- '(org-level-6 ((t (:height 1.1))))
- '(org-level-7 ((t (:height 1.0))))
- '(org-level-8 ((t (:height 1.0))))
- '(org-link ((t (:foreground "lavender" :underline t))))
- '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-property-value ((t (:inherit fixed-pitch))) t)
- '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
- '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
- '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-#+end_src
 * Packages
 #+begin_src elisp :tangle packages.el
 ;VISUAL
@@ -662,6 +695,7 @@ Be careful with these....
 ;COMPLETION______________
 (package! cape)
 (package! corfu)
+(package! corfu-candidate-overlay)
 (package! orderless)
 (package! pcmpl-args)
 ;MISC_____________________
@@ -700,12 +734,12 @@ Be careful with these....
        ;;minimap           ; show a map of the code on the side
        modeline          ; snazzy, Atom-inspired modeline, plus API
        nav-flash         ; blink cursor line after big motions
-       neotree           ; a project drawer, like NERDTree for vim
+       ;;neotree           ; a project drawer, like NERDTree for vim
        ophints           ; highlight the region an operation acts on
        (popup +defaults)   ; tame sudden yet inevitable temporary windows
        ;;tabs              ; a tab bar for Emacs
-       ;;(treemacs          ; a project drawer, like neotree but cooler
-       ; +lsp +icons )
+       (treemacs          ; a project drawer, like neotree but cooler
+        +lsp +icons )
        ;;unicode           ; extended unicode support for various languages
        (vc-gutter +pretty) ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
@@ -862,7 +896,6 @@ Be careful with these....
        ;;(scheme +guile)   ; a fully conniving family of lisps
 #+end_src
 ** Email/App/Config
-
 #+begin_src elisp :tangle init.el
        :email
        ;;(mu4e +org +gmail)

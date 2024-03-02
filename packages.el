@@ -1,3 +1,6 @@
+(package! prescient)
+(package! corfu-prescient)
+
 ;VISUAL
 (package! all-the-icons)
 (package! doom-themes)
@@ -25,6 +28,7 @@
 ;COMPLETION______________
 (package! cape)
 (package! corfu)
+(package! corfu-candidate-overlay)
 (package! orderless)
 (package! pcmpl-args)
 ;MISC_____________________

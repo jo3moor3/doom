@@ -1,19 +1,12 @@
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages '(s))
- '(warning-suppress-types '((org-element-cache) (org-element-cache) (defvaralias))))
-
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ `(corfu-default ((t (:background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg)))))
  '(org-block ((t (:inherit fixed-pitch))))
  '(org-code ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-info ((t (:foreground "dark orange"))))
+ '(org-document-info ((t (:foreground "tan"))))
  '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
  '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
  '(org-indent ((t (:inherit (org-hide fixed-pitch)))))

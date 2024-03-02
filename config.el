@@ -1,8 +1,21 @@
 ;May help sreen flickering
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
-
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil)
+(setq company-idle-delay nil) ;Disable company auto-complete
+
+(defvar no-flyspell-list '("config.org"))
+
+(defun turn-off-flyspell-if-match ()
+  (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
+      (flyspell-mode -1)))
+
+(add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (when (version< "29.0.50" emacs-version)
   (pixel-scroll-precision-mode))
@@ -17,6 +30,7 @@
   (ispell-set-spellchecker-params)
   (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
 (map! :n "SPC I" #'ispell)
+(map! :n "C-S-i" #'ispell-word)
 
 (setq user-full-name "Theodore Moore"
       user-mail-address "jo3moore@gmail.com")
@@ -123,6 +137,20 @@
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
 
+(use-package corfu-candidate-overlay
+  :after corfu
+  :config
+  ;; enable corfu-candidate-overlay mode globally
+  ;; this relies on having corfu-auto set to nil
+  (corfu-candidate-overlay-mode +1)
+
+  (global-set-key (kbd "M-<tab>") 'completion-at-point)
+  ;; bind Ctrl + Shift + Tab to trigger completion of the first candidate
+  ;; (keybing <iso-lefttab> may not work for your keyboard model)
+  (global-set-key (kbd "C-<iso-tab>") 'corfu-candidate-overlay-complete-at-point))
+
+(corfu-prescient-mode 1)
+
 (use-package corfu
   ;:custom
   ;; (corfu-separator ?_) ;; Set to orderless separator, if not using space
@@ -157,7 +185,7 @@
 
 (map! :g "C-s" #'save-buffer)
 
-(map! :desc "iedit" :nv "C-=" #'iedit-mode)
+(map! :desc "iedit" :nv "C-;" #'iedit-mode)
 
 (map! :after evil :gnvi "C-f" #'consult-line)
 
@@ -213,17 +241,13 @@
   (doom-themes-visual-bell-config)
   ;; Enable custom neotree theme (all-the-icons must be installed!)
   (doom-themes-neotree-config)
-  ;; or for treemacs users
-  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-  (doom-themes-treemacs-config)
+  (setq doom-themes-treemacs-theme "doom-colors") ;; or for treemacs users
+  ;(doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 
 (setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
 (setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
-
-;Relative line numbers is nice for vim(evil) movement!
-(setq display-line-numbers-type 'relative)
 
 (use-package! visual-fill-column
   :hook (visual-line-mode . visual-fill-column-mode)
