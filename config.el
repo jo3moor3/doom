@@ -3,13 +3,13 @@
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
 (setq company-idle-delay nil) ;Disable company auto-complete
 
-(defvar no-flyspell-list '("config.org"))
+;; (defvar no-flyspell-list '("config.org"))
 
-(defun turn-off-flyspell-if-match ()
-  (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
-      (flyspell-mode -1)))
+;; (defun turn-off-flyspell-if-match ()
+;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
+;;       (flyspell-mode -1)))
 
-(add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
 
 (dolist (mode '(org-mode-hook
                 term-mode-hook
@@ -23,14 +23,43 @@
 (setq which-key-idle-delay 0.5)
 
 (setq yas-triggers-in-field t)
+;;(setq gc-cons-threshold 20000000) ;increase garbage collection threshold
 
 (after! ispell
   (setenv "LANG" "en_US.UTF-8")
   (setq ispell-dictionary "en_US,fr_FR")
   (ispell-set-spellchecker-params)
   (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
+
+(setq ispell-personal-dictionary
+      (expand-file-name ".hunspell_en_US" doom-private-dir))
+
 (map! :n "SPC I" #'ispell)
 (map! :n "C-S-i" #'ispell-word)
+
+(set-flyspell-predicate! '(org-mode)
+  #'+org-flyspell-word-p)
+
+(defun +org-flyspell-word-p ()
+  "Return t if point is on a word that should be spell checked.
+
+Return nil if on this list."
+  (let ((faces (doom-enlist (get-text-property (point) 'face))))
+    (or (and (memq 'org-level-1 faces))
+	(not (cl-loop with unsafe-faces = '(org-code
+                   org-roam-olp
+                   org-property-value
+                   org-block-begin-line
+                   org-column
+					    org-document-info
+					    org-document-info-keyword
+					    org-link
+					    org-block
+					    org-tag
+					    org-modern-tag)
+		      for face in faces
+		      if (memq face unsafe-faces)
+		      return t)))))
 
 (setq user-full-name "Theodore Moore"
       user-mail-address "jo3moore@gmail.com")
@@ -101,8 +130,8 @@
 (setq-local completion-at-point-functions
             (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
 
-;(setq-local completion-at-point-functions
-;            (list (cape-capf-buster #'some-caching-capf)))
+;; (setq-local completion-at-point-functions
+;;             (list (cape-capf-buster #'dabbrev-capf)))
 
 (use-package corfu
   ;; Optional customizations
@@ -121,21 +150,24 @@
   ;; `global-corfu-modes' to exclude certain modes.
   :init
   (global-corfu-mode))
-
 ;; A few more useful configurations...
 (use-package emacs
   :init
   ;; TAB cycle if there are only few candidates
   (setq completion-cycle-threshold 3)
-
-  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
-  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
-  ;; (setq read-extended-command-predicate
-  ;;       #'command-completion-default-include-p)
-
   ;; Enable indentation+completion using the TAB key.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
+
+;(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+
+;(setq nerd-icons-corfu-mapping
+      ;; '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+      ;;   (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+      ;;   (t :style "cod" :icon "code" :face font-lock-warning-face)))
+        ;; Remember to add an entry for `t', the library uses that as default.
+
+;; The Custom interface is also supported for tuning the variable above.
 
 (use-package corfu-candidate-overlay
   :after corfu
@@ -144,10 +176,10 @@
   ;; this relies on having corfu-auto set to nil
   (corfu-candidate-overlay-mode +1)
 
+  ;Whenever I delete these keybindings it throws an error?
+  ;Even if I make a more Doom-like keybinding as a replacement...
   (global-set-key (kbd "M-<tab>") 'completion-at-point)
-  ;; bind Ctrl + Shift + Tab to trigger completion of the first candidate
-  ;; (keybing <iso-lefttab> may not work for your keyboard model)
-  (global-set-key (kbd "C-<iso-tab>") 'corfu-candidate-overlay-complete-at-point))
+  (global-set-key (kbd "C-<iso-lefttab>") 'corfu-candidate-overlay-complete-at-point))
 
 (corfu-prescient-mode 1)
 
@@ -200,29 +232,6 @@
 (map! :map dired-mode-map
       :n "h" #'dired-up-directory
       :n "l" #'dired-find-alternate-file)
-
-(map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
-
-(defun +doom-dashboard-setup-modified-keymap ()
-  (setq +doom-dashboard-mode-map (make-sparse-keymap))
-  (map! :map +doom-dashboard-mode-map
-        :desc "Find file" :ng "f" #'find-file
-        :desc "Recent files" :ng "r" #'consult-recent-file
-        :desc "Config dir" :ng "C" #'doom/open-private-config
-        :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
-        :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
-        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
-        :desc "Notes" :ng "n" #'org-roam-node-find
-        :desc "Switch buffers (all)" :ng "B" #'consult-buffer
-        :desc "IBuffer" :ng "i" #'ibuffer
-        :desc "Previous buffer" :ng "p" #'previous-buffer
-        :desc "Set theme" :ng "t" #'consult-theme
-        :desc "Quit" :ng "Q" #'save-buffers-kill-terminal
-        :desc "Show keybindings" :ng "h" (cmd! (which-key-show-keymap '+doom-dashboard-mode-map))))
-
-(add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
-(add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
-(add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
 
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
@@ -322,6 +331,29 @@
 ;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 
+(map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
+
+(defun +doom-dashboard-setup-modified-keymap ()
+  (setq +doom-dashboard-mode-map (make-sparse-keymap))
+  (map! :map +doom-dashboard-mode-map
+        :desc "Find file" :ng "f" #'find-file
+        :desc "Recent files" :ng "r" #'consult-recent-file
+        :desc "Config dir" :ng "C" #'doom/open-private-config
+        :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
+        :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
+        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
+        :desc "Notes" :ng "n" #'org-roam-node-find
+        :desc "Switch buffers (all)" :ng "B" #'consult-buffer
+        :desc "IBuffer" :ng "i" #'ibuffer
+        :desc "Previous buffer" :ng "p" #'previous-buffer
+        :desc "Set theme" :ng "t" #'consult-theme
+        :desc "Quit" :ng "Q" #'save-buffers-kill-terminal
+        :desc "Show keybindings" :ng "h" (cmd! (which-key-show-keymap '+doom-dashboard-mode-map))))
+
+(add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
+(add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
+(add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
+
 ;;Only setup required besides downloading the package
 (require 'pcmpl-args)
 
@@ -340,6 +372,18 @@
     (comint-send-input))))
 
 (advice-add #'corfu-insert :after #'corfu-send-shell)
+
+(require 'chatgpt-shell)
+(use-package chatgpt-shell
+  :ensure t
+  :custom
+  ((chatgpt-shell-openai-key
+    (lambda ()
+      (auth-source-pass-get 'secret "openai-key")))))
+
+(setq chatgpt-shell-openai-key
+      (lambda ()
+        (nth 0 (process-lines "pass" "show" "openai-key"))))
 
 (after! spell-fu
   (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))

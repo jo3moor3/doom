@@ -1,5 +1,21 @@
+;COMPLETION
+(package! cape)
+
+(package! corfu)
+
+;(package! nerd-icons-corfu)
+
+(package! corfu-candidate-overlay)
+
 (package! prescient)
 (package! corfu-prescient)
+
+(package! orderless)
+
+(package! pcmpl-args)
+
+(package! chatgpt-shell)
+;(package! dall-e-shell)
 
 ;VISUAL
 (package! all-the-icons)
@@ -25,11 +41,5 @@
 ;(package! xenops)
 (package! org-fragtog)
 (package! auctex)
-;COMPLETION______________
-(package! cape)
-(package! corfu)
-(package! corfu-candidate-overlay)
-(package! orderless)
-(package! pcmpl-args)
 ;MISC_____________________
 (package! ssh-agency)
