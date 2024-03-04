@@ -22,7 +22,6 @@
 (package! doom-themes)
 ;PYTHON____________________
 (package! poetry)
-(package! conda)
 (package! lsp-pyright)
 (package! virtualenvwrapper)
 (package! dap-mode)
@@ -43,3 +42,5 @@
 (package! auctex)
 ;MISC_____________________
 (package! ssh-agency)
+
+(package! codeium :recipe (:host github :repo "Exafunction/codeium.el"))

@@ -3,14 +3,6 @@
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
 (setq company-idle-delay nil) ;Disable company auto-complete
 
-;; (defvar no-flyspell-list '("config.org"))
-
-;; (defun turn-off-flyspell-if-match ()
-;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
-;;       (flyspell-mode -1)))
-
-;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
-
 (dolist (mode '(org-mode-hook
                 term-mode-hook
                 shell-mode-hook
@@ -46,24 +38,33 @@
 Return nil if on this list."
   (let ((faces (doom-enlist (get-text-property (point) 'face))))
     (or (and (memq 'org-level-1 faces))
-	(not (cl-loop with unsafe-faces = '(org-code
-                   org-roam-olp
-                   org-property-value
-                   org-block-begin-line
-                   org-column
-					    org-document-info
-					    org-document-info-keyword
-					    org-link
-					    org-block
-					    org-tag
-					    org-modern-tag)
+	(not (cl-loop with unsafe-faces ='(org-code
+        org-roam-olp
+        org-verbatim
+        org-property-value
+        org-block-begin-line
+        org-column
+		   org-document-info-keyword
+		   org-document-info-keyword
+		   org-link
+		   org-block
+		   org-tag
+		   org-modern-tag)
 		      for face in faces
 		      if (memq face unsafe-faces)
 		      return t)))))
 
+;; (defvar no-flyspell-list '("config.org"))
+
+;; (defun turn-off-flyspell-if-match ()
+;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
+;;       (flyspell-mode -1)))
+
+;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+
 (setq user-full-name "Theodore Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
+(setq projectile-project-search-path '("~/Shaders" "~/code/"))
 
 (defun reload_all ()
 (interactive)
@@ -103,6 +104,8 @@ Return nil if on this list."
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+  ;;(add-to-list 'completion-at-point-functions #'cape-capf-super)
   ;;(add-to-list 'completion-at-point-functions #'cape-history)
   ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
   ;;(add-to-list 'completion-at-point-functions #'cape-tex)
@@ -114,21 +117,15 @@ Return nil if on this list."
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
 )
 
-;; Use Company backends as Capfs.
-(setq-local completion-at-point-functions
-  (mapcar #'cape-company-to-capf
-    (list #'company-files #'company-keywords #'company-dabbrev #'company-ispell)))
-
-(require 'company)
-;; Use the company-dabbrev and company-elisp backends together.
-(setq completion-at-point-functions
-      (list
-       (cape-company-to-capf
-        (apply-partially #'company--multi-backend-adapter
-                         '(company-dabbrev company-elisp)))))
-
+;; Combining dabbrev dict and keyword
 (setq-local completion-at-point-functions
             (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
+
+;; Combining Codeium and lsp for Python
+(add-hook 'python-mode-hook
+        (lambda ()
+          (setq-local completion-at-point-functions
+                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point)))))
 
 ;; (setq-local completion-at-point-functions
 ;;             (list (cape-capf-buster #'dabbrev-capf)))
@@ -136,12 +133,12 @@ Return nil if on this list."
 (use-package corfu
   ;; Optional customizations
    :custom
-   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;;(corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   ;; (corfu-auto t)                 ;; Enable auto completion
   ;; (corfu-separator ?\s)          ;; Orderless field separator
   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+   (corfu-preview-current nil)    ;; Disable current candidate preview
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
@@ -154,7 +151,7 @@ Return nil if on this list."
 (use-package emacs
   :init
   ;; TAB cycle if there are only few candidates
-  (setq completion-cycle-threshold 3)
+  (setq completion-cycle-threshold 0)
   ;; Enable indentation+completion using the TAB key.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
@@ -179,7 +176,9 @@ Return nil if on this list."
   ;Whenever I delete these keybindings it throws an error?
   ;Even if I make a more Doom-like keybinding as a replacement...
   (global-set-key (kbd "M-<tab>") 'completion-at-point)
-  (global-set-key (kbd "C-<iso-lefttab>") 'corfu-candidate-overlay-complete-at-point))
+  ;(global-set-key (kbd "C-<lefttab>") 'corfu-candidate-overlay-complete-at-point)
+
+  (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
 
 (corfu-prescient-mode 1)
 
@@ -219,7 +218,10 @@ Return nil if on this list."
 
 (map! :desc "iedit" :nv "C-;" #'iedit-mode)
 
-(map! :after evil :gnvi "C-f" #'consult-line)
+(map! :n "M-f" #'consult-ripgrep)
+(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
+(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
+(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
 
 (map! :map emacs-everywhere-mode-map
       "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
@@ -264,6 +266,34 @@ Return nil if on this list."
   (setq visual-fill-column-width 120
         visual-fill-column-center-text t
         visual-fill-column-fringes-outside-margins nil))
+
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ `(corfu-default ((t (:background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg)))))
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "tan"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
+ '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
+ '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
+ '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
+ '(org-level-5 ((t (:height 1.15))))
+ '(org-level-6 ((t (:height 1.1))))
+ '(org-level-7 ((t (:height 1.0))))
+ '(org-level-8 ((t (:height 1.0))))
+ '(org-link ((t (:foreground "lavender" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 
 (after! marginalia
   (setq marginalia-censor-variables nil)
@@ -385,16 +415,22 @@ Return nil if on this list."
       (lambda ()
         (nth 0 (process-lines "pass" "show" "openai-key"))))
 
+;; Disable spellcheck for org-modern-tag
 (after! spell-fu
   (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
 
+;; Get rid of org-roam completions
+(setq org-roam-completion-everywhere nil)
+
+;; Basic setup
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
 (add-hook 'org-mode-hook 'org-eldoc-load))
 (setq org-use-property-inheritance t)
-;org download for pasting images
+
+;; org download for pasting images
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
@@ -501,6 +537,69 @@ Return nil if on this list."
       :desc "link image" :nv "p" #'org-download-clipboard
       ))
 
+(setq lsp-enable-file-watchers 1)
+
+(use-package codeium
+    :init
+    ;; use globally
+    (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+    ;; or on a hook
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local completion-at-point-functions '(codeium-completion-at-point))))
+
+    ;; if you want multiple completion backends, use cape (https://github.com/minad/cape):
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local completion-at-point-functions
+    ;;             (list (cape-super-capf #'codeium-completion-at-point #'lsp-completion-at-point)))))
+    ;; an async company-backend is coming soon!
+
+    ;; codeium-completion-at-point is autoloaded, but you can
+    ;; optionally set a timer, which might speed up things as the
+    ;; codeium local language server takes ~0.2s to start up
+    ;; (add-hook 'emacs-startup-hook
+    ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
+
+    ;; :defer t ;; lazy loading, if you want
+)
+
+;; we recommend using use-package to organize your init.el
+(use-package codeium
+    :config
+    (setq use-dialog-box nil) ;; do not use popup boxes
+
+    ;; if you don't want to use customize to save the api-key
+    ;; (setq codeium/metadata/api_key "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+
+    ;; get codeium status in the modeline
+    (setq codeium-mode-line-enable
+        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
+    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t)
+    ;; alternatively for a more extensive mode-line
+    ;; (add-to-list 'mode-line-format '(-50 "" codeium-mode-line) t)
+
+    ;; use M-x codeium-diagnose to see apis/fields that would be sent to the local language server
+    (setq codeium-api-enabled
+        (lambda (api)
+            (memq api '(GetCompletions Heartbeat CancelRequest GetAuthToken RegisterUser auth-redirect AcceptCompletion))))
+    ;; you can also set a config for a single buffer like this:
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local codeium/editor_options/tab_size 4)))
+
+    ;; You can overwrite all the codeium configs!
+    ;; for example, we recommend limiting the string sent to codeium for better performance
+    (defun my-codeium/document/text ()
+        (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (min (+ (point) 1000) (point-max))))
+    ;; if you change the text, you should also change the cursor_offset
+    ;; warning: this is measured by UTF-8 encoded bytes
+    (defun my-codeium/document/cursor_offset ()
+        (codeium-utf8-byte-length
+            (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (point))))
+    (setq codeium/document/text 'my-codeium/document/text)
+    (setq codeium/document/cursor_offset 'my-codeium/document/cursor_offset))
+
 ;DEBUGGER
 (after! dap-mode
   (setq dap-python-debuger 'debugpy))
@@ -509,16 +608,15 @@ Return nil if on this list."
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
-(setq conda-env-autoactivate-mode t)
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
-  (setq venv-location "~/.conda/envs/"))
+  (setq venv-location "~/.virtualenvs"))
 
-(use-package! conda
-  :ensure t
-  :init
-  (setq conda-anaconda-home (expand-file-name "~/.conda"))
-  (setq conda-env-home-directory (expand-file-name "~/.conda")))
+;; (use-package! conda
+;;   :ensure t
+;;   :init
+;;   (setq conda-anaconda-home (expand-file-name "~/.conda"))
+;;   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 
 (map! :n "SPC g p" #'magit-push
       (:prefix ("M-p" . "Python")

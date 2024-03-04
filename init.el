@@ -5,7 +5,7 @@
        ;;layout            ; auie,ctsrnm is the superior home row
 
        :completion
-       company           ; the ultimate code completion backend
+       ;;company           ; the ultimate code completion backend
        ;;helm              ; the *other* search engine for love and life
        ;;ido               ; the other *other* search engine...
        ;;ivy               ; a search engine for love and life
@@ -122,7 +122,7 @@ markdown          ; writing docs for people to ignore
  )
 (python +lsp      ; beautiful is better than ugly
  +poetry          ; Python dependency manangement
- +conda           ; Virtual environment support
+ ;+conda           ; Virtual environment support
  +pyright)        ; The best Python language server
 qt                ; the 'cutest' gui framework ever
 (sh +lsp)         ; she sells {ba,z,fi}sh shells on the C xor

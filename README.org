@@ -24,11 +24,13 @@ My ever expanding all consuming configuration for Doom Emacs.
   - [[#fontsdocument][Fonts/Document]]
   - [[#faces][Faces]]
   - [[#files][Files]]
-  - [[#dashboard][Dashboard]]
-- [[#eshell][Eshell]]
-  - [[#profile][Profile]]
-  - [[#aliases][Aliases]]
-  - [[#completion-1][Completion]]
+- [[#dashboard][Dashboard]]
+  - [[#banner][Banner]]
+  - [[#menu][Menu]]
+  - [[#quick-actions][Quick actions]]
+- [[#shells][Shells]]
+  - [[#eshell][Eshell]]
+  - [[#gptshell][GPTshell]]
 - [[#org][Org]]
   - [[#setup][Setup]]
   - [[#aesthetics][Aesthetics]]
@@ -44,6 +46,7 @@ My ever expanding all consuming configuration for Doom Emacs.
   - [[#languages][Languages]]
   - [[#emailappconfig][Email/App/Config]]
 - [[#code][Code]]
+  - [[#lsp][lsp]]
   - [[#codeium][Codeium]]
   - [[#python][Python]]
 
@@ -57,17 +60,6 @@ Stop screen flickering, inhibit the quit confirmation, and disable company compl
 (add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
 (setq company-idle-delay nil) ;Disable company auto-complete
-#+end_src
-**** No flyspell list
-I can manually spellcheck in certain files. I don't need a million notifications about all the spelling errors in my literate configs' code blocks.
-#+begin_src emacs-lisp
-(defvar no-flyspell-list '("config.org"))
-
-(defun turn-off-flyspell-if-match ()
-  (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
-      (flyspell-mode -1)))
-
-(add-hook 'find-file-hook #'turn-off-flyspell-if-match)
 #+end_src
 **** No line numbers list
 List of modes that don't necessarily benefit from having line numbers.
@@ -87,24 +79,68 @@ Better scrolling, quicker which-key, and nested snippets.
 (setq which-key-idle-delay 0.5)
 
 (setq yas-triggers-in-field t)
+;;(setq gc-cons-threshold 20000000) ;increase garbage collection threshold
 #+end_src
 *** Spelling
-Adding both French and English dictionaries, as well as a keybinding for stepping through document wide spellchecks.
+**** Setup
+Adding both French and English dictionaries, a personal dictionary file, as well as a keybinding for stepping through document wide spellchecks.
 #+begin_src  elisp
 (after! ispell
   (setenv "LANG" "en_US.UTF-8")
   (setq ispell-dictionary "en_US,fr_FR")
   (ispell-set-spellchecker-params)
   (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
+
+(setq ispell-personal-dictionary
+      (expand-file-name ".hunspell_en_US" doom-private-dir))
+
 (map! :n "SPC I" #'ispell)
 (map! :n "C-S-i" #'ispell-word)
+#+end_src
+**** Face ignore list
+#+begin_src emacs-lisp
+(set-flyspell-predicate! '(org-mode)
+  #'+org-flyspell-word-p)
+
+(defun +org-flyspell-word-p ()
+  "Return t if point is on a word that should be spell checked.
+
+Return nil if on this list."
+  (let ((faces (doom-enlist (get-text-property (point) 'face))))
+    (or (and (memq 'org-level-1 faces))
+	(not (cl-loop with unsafe-faces ='(org-code
+        org-roam-olp
+        org-verbatim
+        org-property-value
+        org-block-begin-line
+        org-column
+		   org-document-info-keyword
+		   org-document-info-keyword
+		   org-link
+		   org-block
+		   org-tag
+		   org-modern-tag)
+		      for face in faces
+		      if (memq face unsafe-faces)
+		      return t)))))
+#+end_src
+**** Files ignore list
+I can manually spellcheck in certain files. I don't need a million notifications about all the spelling errors in my literate configs' code blocks.
+#+begin_src emacs-lisp
+;; (defvar no-flyspell-list '("config.org"))
+
+;; (defun turn-off-flyspell-if-match ()
+;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
+;;       (flyspell-mode -1)))
+
+;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
 #+end_src
 *** Info
 My name, email, and the location of my projects.
 #+begin_src elisp
 (setq user-full-name "Theodore Moore"
       user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/Shaders" "~/Documents/GitHub/" "~/code/"))
+(setq projectile-project-search-path '("~/Shaders" "~/code/"))
 #+end_src
 ** Convenience
 *** Reloading
@@ -143,8 +179,12 @@ I'll work on a cleaner fix for this at some point.
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
 #+end_src
 ** Completion
-*** Cape/Company
+*** Cape
 **** Cape functions
+#+begin_src emacs-lisp :tangle packages.el
+;COMPLETION
+(package! cape)
+#+end_src
 #+begin_src emacs-lisp
 ;; Add extensions
 (use-package cape
@@ -156,6 +196,8 @@ I'll work on a cleaner fix for this at some point.
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+  ;;(add-to-list 'completion-at-point-functions #'cape-capf-super)
   ;;(add-to-list 'completion-at-point-functions #'cape-history)
   ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
   ;;(add-to-list 'completion-at-point-functions #'cape-tex)
@@ -167,48 +209,41 @@ I'll work on a cleaner fix for this at some point.
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
 )
 #+end_src
-**** Company adapter
-Transforming company backends to Capfs.
-#+begin_src emacs-lisp
-;; Use Company backends as Capfs.
-(setq-local completion-at-point-functions
-  (mapcar #'cape-company-to-capf
-    (list #'company-files #'company-keywords #'company-dabbrev #'company-ispell)))
-#+end_src
-Merging company backends.
-#+begin_src emacs-lisp
-(require 'company)
-;; Use the company-dabbrev and company-elisp backends together.
-(setq completion-at-point-functions
-      (list
-       (cape-company-to-capf
-        (apply-partially #'company--multi-backend-adapter
-                         '(company-dabbrev company-elisp)))))
-#+end_src
 **** Super Capf
 Merging multiple Capfs.
 #+begin_src emacs-lisp
+;; Combining dabbrev dict and keyword
 (setq-local completion-at-point-functions
             (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
+
+;; Combining Codeium and lsp for Python
+(add-hook 'python-mode-hook
+        (lambda ()
+          (setq-local completion-at-point-functions
+                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point)))))
 #+end_src
 **** Capf buster
-Setting up cache busting so theres always a fresh set of canadites.
+Setting up cache busting so there's always a fresh set of candidates.
 #+begin_src emacs-lisp
-;(setq-local completion-at-point-functions
-;            (list (cape-capf-buster #'some-caching-capf)))
+;; (setq-local completion-at-point-functions
+;;             (list (cape-capf-buster #'dabbrev-capf)))
 #+end_src
 *** Corfu
 **** Defaults
+[[https://github.com/minad/corfu][Corfu (COmpletion in Region FUnction)]] is an alternative to company. I find better it to be better integrated and subsequently faster with a nicer interface..
+#+begin_src emacs-lisp :tangle packages.el
+(package! corfu)
+#+end_src
 #+begin_src emacs-lisp
 (use-package corfu
   ;; Optional customizations
    :custom
-   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;;(corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   ;; (corfu-auto t)                 ;; Enable auto completion
   ;; (corfu-separator ?\s)          ;; Orderless field separator
   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+   (corfu-preview-current nil)    ;; Disable current candidate preview
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
@@ -217,24 +252,38 @@ Setting up cache busting so theres always a fresh set of canadites.
   ;; `global-corfu-modes' to exclude certain modes.
   :init
   (global-corfu-mode))
-
 ;; A few more useful configurations...
 (use-package emacs
   :init
   ;; TAB cycle if there are only few candidates
-  (setq completion-cycle-threshold 3)
-
-  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
-  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
-  ;; (setq read-extended-command-predicate
-  ;;       #'command-completion-default-include-p)
-
+  (setq completion-cycle-threshold 0)
   ;; Enable indentation+completion using the TAB key.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
 #+end_src
+**** Icons
+[[https://github.com/LuigiPiucco/nerd-icons-corfu][nerd-icons-corfu]]
+Not workng currently. I'll get to this eventually as long as I stick to corfu
+#+begin_src emacs-lisp :tangle packages.el
+;(package! nerd-icons-corfu)
+#+end_src
+Formatting the icons.
+#+begin_src emacs-lisp
+;(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+
+;(setq nerd-icons-corfu-mapping
+      ;; '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+      ;;   (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+      ;;   (t :style "cod" :icon "code" :face font-lock-warning-face)))
+        ;; Remember to add an entry for `t', the library uses that as default.
+
+;; The Custom interface is also supported for tuning the variable above.
+#+end_src
 **** candidate overlay
-Need to make the keybindings more doom like.
+Much better than normal auto completion.
+#+begin_src emacs-lisp :tangle packages.el
+(package! corfu-candidate-overlay)
+#+end_src
 #+begin_src emacs-lisp
   (use-package corfu-candidate-overlay
     :after corfu
@@ -243,13 +292,16 @@ Need to make the keybindings more doom like.
     ;; this relies on having corfu-auto set to nil
     (corfu-candidate-overlay-mode +1)
 
+    ;Whenever I delete these keybindings it throws an error?
+    ;Even if I make a more Doom-like keybinding as a replacement...
     (global-set-key (kbd "M-<tab>") 'completion-at-point)
-    ;; bind Ctrl + Shift + Tab to trigger completion of the first candidate
-    ;; (keybing <iso-lefttab> may not work for your keyboard model)
-    (global-set-key (kbd "C-<iso-tab>") 'corfu-candidate-overlay-complete-at-point))
+    ;(global-set-key (kbd "C-<lefttab>") 'corfu-candidate-overlay-complete-at-point)
+
+    (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
 #+end_src
+
 **** prescient
-I'm using [[https://github.com/radian-software/prescient.el][prescient]] to handle sorting/filtering of the corfu completions.
+I'm using [[https://github.com/radian-software/prescient.el][prescient]] to handle sorting/filtering of the Corfu completions.
 #+begin_src emacs-lisp :tangle packages.el
 (package! prescient)
 (package! corfu-prescient)
@@ -257,8 +309,11 @@ I'm using [[https://github.com/radian-software/prescient.el][prescient]] to hand
 #+begin_src emacs-lisp
 (corfu-prescient-mode 1)
 #+end_src
-**** orderless
+*** Orderless
 [[https://github.com/oantolin/orderless][Orderless]] is an interesting completion style I've been testing out.
+#+begin_src emacs-lisp :tangle packages.el
+(package! orderless)
+#+end_src
 #+begin_src emacs-lisp
 (use-package corfu
   ;:custom
@@ -299,11 +354,14 @@ It's the simple things.
 (map! :g "C-s" #'save-buffer)
 #+end_src
 *** Search, find, and replace
-Simultaneous editing via iedit and comfortable searching with consult.
+Simultaneous editing via iedit and comfortable searching with consult and Isearch.
 #+begin_src emacs-lisp
 (map! :desc "iedit" :nv "C-;" #'iedit-mode)
 
-(map! :after evil :gnvi "C-f" #'consult-line)
+(map! :n "M-f" #'consult-ripgrep)
+(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
+(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
+(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
 #+end_src
 *** Undo and everywhere
 Standard undo/redo and bringing Emacs everywhere.
@@ -316,40 +374,12 @@ Standard undo/redo and bringing Emacs everywhere.
         "C-S-z" #'undo-fu-only-redo
          :nvi "C-z" #'undo-fu-only-undo))
 #+end_src
-*** Dired and dashboard
+*** Dired
 Making Dired behave more like ranger without installing the whole ranger conversion package.
-Adding a shortcut to return to the dashboard. In the next section it becomes more apparent why this is useful.
 #+begin_src emacs-lisp
 (map! :map dired-mode-map
       :n "h" #'dired-up-directory
       :n "l" #'dired-find-alternate-file)
-
-(map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
-#+end_src
-*** Dashboard quick actions
-This makes the dashboard 1000x more useful. Adapted from [[https://tecosaur.github.io/emacs-config/config.html#dashboard][Tecosaur's Config]].
-Single key press keybindings, a help menu, and shortcuts to everything I could ever need.
-#+begin_src emacs-lisp
-(defun +doom-dashboard-setup-modified-keymap ()
-  (setq +doom-dashboard-mode-map (make-sparse-keymap))
-  (map! :map +doom-dashboard-mode-map
-        :desc "Find file" :ng "f" #'find-file
-        :desc "Recent files" :ng "r" #'consult-recent-file
-        :desc "Config dir" :ng "C" #'doom/open-private-config
-        :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
-        :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
-        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
-        :desc "Notes" :ng "n" #'org-roam-node-find
-        :desc "Switch buffers (all)" :ng "B" #'consult-buffer
-        :desc "IBuffer" :ng "i" #'ibuffer
-        :desc "Previous buffer" :ng "p" #'previous-buffer
-        :desc "Set theme" :ng "t" #'consult-theme
-        :desc "Quit" :ng "Q" #'save-buffers-kill-terminal
-        :desc "Show keybindings" :ng "h" (cmd! (which-key-show-keymap '+doom-dashboard-mode-map))))
-
-(add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
-(add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
-(add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
 #+end_src
 * Visual
 ** Theme
@@ -393,8 +423,8 @@ Setting up font for code/mono space (JetBrains) and for org/variable pitch (Aleg
         visual-fill-column-fringes-outside-margins nil))
 #+end_src
 ** Faces
-Mosty org customizations right now.
-#+begin_src elisp :tangle custom.el
+Mostly org customizations right now.
+#+begin_src elisp
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -459,8 +489,8 @@ Mosty org customizations right now.
                     (doom-blend 'red 'orange (- size-index 1)))))
       (propertize (file-size-human-readable size) 'face (list :foreground color)))))
 #+end_src
-** Dashboard
-*** Banner
+* Dashboard
+** Banner
 Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash image currently.
 #+begin_src elisp
 (setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
@@ -492,24 +522,53 @@ Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash imag
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 #+end_src
-*** Menu
+** Menu
+Just removing the menu functions for now. All I need functionally are the quick actions but I may replace this with something more aesthetic.
 #+begin_src emacs-lisp
 ;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 #+end_src
-* Eshell
+** Quick actions
+This makes the dashboard 1000x more useful. Adapted from [[https://tecosaur.github.io/emacs-config/config.html#dashboard][Tecosaur's Config]].
+Single key press keybindings, a help menu, and shortcuts to everything I could ever need.
+#+begin_src emacs-lisp
+(map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
+
+(defun +doom-dashboard-setup-modified-keymap ()
+  (setq +doom-dashboard-mode-map (make-sparse-keymap))
+  (map! :map +doom-dashboard-mode-map
+        :desc "Find file" :ng "f" #'find-file
+        :desc "Recent files" :ng "r" #'consult-recent-file
+        :desc "Config dir" :ng "C" #'doom/open-private-config
+        :desc "Open config.org" :ng "c" (cmd! (find-file (expand-file-name "config.org" doom-user-dir)))
+        :desc "Open dotfile" :ng "." (cmd! (doom-project-find-file "~/.config/"))
+        :desc "Open qtile" :ng "q" (cmd! (doom-project-find-file "~/.config/qtile/"))
+        :desc "Notes" :ng "n" #'org-roam-node-find
+        :desc "Switch buffers (all)" :ng "B" #'consult-buffer
+        :desc "IBuffer" :ng "i" #'ibuffer
+        :desc "Previous buffer" :ng "p" #'previous-buffer
+        :desc "Set theme" :ng "t" #'consult-theme
+        :desc "Quit" :ng "Q" #'save-buffers-kill-terminal
+        :desc "Show keybindings" :ng "h" (cmd! (which-key-show-keymap '+doom-dashboard-mode-map))))
+
+(add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
+(add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
+(add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
+#+end_src
+* Shells
+** Eshell
 I was always more of a vterm guy until I recognized a few use cases for the Eshell.
 Namely: tighter Emacs integration (virtual environments) and using Emacs commands.
 In addition to that I found some great completion that make me miss Zsh much less. But there is still a ways to go.
-** Profile
+*** Profile
 Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
 I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
 Alternatively you can just use =colorscript --blacklist (script index/name)=
 #+begin_src emacs-lisp :tangle eshell/profile
 colorscript random
 #+end_src
-** Aliases
-*** Necessity
+*** Aliases
+**** Necessity
 The usual stuff.
 #+begin_src emacs-lisp :tangle eshell/aliases
 ;Standard
@@ -523,7 +582,7 @@ alias cp cp -i $1
 ;Merge Xresources
 alias merge xrdb -merge ~/.Xresources
 #+end_src
-*** ls to eza
+**** ls to eza
 [[https://github.com/eza-community/eza][eza]] is based on [[https://github.com/ogham/exa][exa]] which is based off of [[ls]].
 They all list files real nice.
 #+begin_src emacs-lisp :tangle eshell/aliases
@@ -533,7 +592,7 @@ alias ll eza -l --color=always --group-directories-first $* ;long format
 alias lt eza -at --color=always --group-directories-first $* ;tree listing
 alias l. eza -a1 $* | rg "^\." ;show only hidden files
 #+end_src
-*** Emacs specific
+**** Emacs specific
 Magit, Doom utilities, and various file commands.
 #+begin_src emacs-lisp :tangle eshell/aliases
 ;Magit aliases
@@ -550,13 +609,16 @@ alias ff find-file-other-window $1
 alias d dired $1
 alias cdp cd-to-project
 #+end_src
-*** glslViewer
+**** glslViewer
 #+begin_src emacs-lisp :tangle eshell/aliases
 alias gl glslViewer $1.frag
 #+end_src
-** Completion
+*** Completion
 With the addition of [[https://github.com/JonWaltman/pcmpl-args.el][pcmpl-args]]  this completion is almost on par with my native Zsh terminal.
 If you use Eshell you need to try to this out. The added Corfu functionality is just the cherry on top.
+#+begin_src emacs-lisp :tangle packages.el
+(package! pcmpl-args)
+#+end_src
 #+begin_src emacs-lisp
 ;;Only setup required besides downloading the package
 (require 'pcmpl-args)
@@ -577,20 +639,47 @@ If you use Eshell you need to try to this out. The added Corfu functionality is 
 
 (advice-add #'corfu-insert :after #'corfu-send-shell)
 #+end_src
+** GPTshell
+*** Setup
+#+begin_src emacs-lisp :tangle packages.el
+(package! chatgpt-shell)
+;(package! dall-e-shell)
+#+end_src
+#+begin_src emacs-lisp
+(require 'chatgpt-shell)
+(use-package chatgpt-shell
+  :ensure t
+  :custom
+  ((chatgpt-shell-openai-key
+    (lambda ()
+      (auth-source-pass-get 'secret "openai-key")))))
+#+end_src
+*** api key
+#+begin_src emacs-lisp
+(setq chatgpt-shell-openai-key
+      (lambda ()
+        (nth 0 (process-lines "pass" "show" "openai-key"))))
+#+end_src
 * Org
 ** Setup
 Important org configurations, [[https://github.com/abo-abo/org-download][org-download]]
 #+begin_src elisp
+;; Disable spellcheck for org-modern-tag
 (after! spell-fu
   (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
 
+;; Get rid of org-roam completions
+(setq org-roam-completion-everywhere nil)
+
+;; Basic setup
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
 (setq org-roam-index-file "~/org/roam/index.org")
 (add-hook 'org-mode-hook 'org-eldoc-load))
 (setq org-use-property-inheritance t)
-;org download for pasting images
+
+;; org download for pasting images
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
@@ -715,7 +804,6 @@ I use latex to render math in org.
 (package! doom-themes)
 ;PYTHON____________________
 (package! poetry)
-(package! conda)
 (package! lsp-pyright)
 (package! virtualenvwrapper)
 (package! dap-mode)
@@ -734,12 +822,6 @@ I use latex to render math in org.
 ;(package! xenops)
 (package! org-fragtog)
 (package! auctex)
-;COMPLETION______________
-(package! cape)
-(package! corfu)
-(package! corfu-candidate-overlay)
-(package! orderless)
-(package! pcmpl-args)
 ;MISC_____________________
 (package! ssh-agency)
 #+end_src
@@ -753,7 +835,7 @@ I use latex to render math in org.
        ;;layout            ; auie,ctsrnm is the superior home row
 
        :completion
-       company           ; the ultimate code completion backend
+       ;;company           ; the ultimate code completion backend
        ;;helm              ; the *other* search engine for love and life
        ;;ido               ; the other *other* search engine...
        ;;ivy               ; a search engine for love and life
@@ -881,7 +963,7 @@ I use latex to render math in org.
         )
        (python +lsp      ; beautiful is better than ugly
         +poetry          ; Python dependency manangement
-        +conda           ; Virtual environment support
+        ;+conda           ; Virtual environment support
         +pyright)        ; The best Python language server
        qt                ; the 'cutest' gui framework ever
        (sh +lsp)         ; she sells {ba,z,fi}sh shells on the C xor
@@ -957,7 +1039,79 @@ I use latex to render math in org.
        (default +bindings +smartparens))
 #+end_src
 * Code
+** lsp
+#+begin_src emacs-lisp
+(setq lsp-enable-file-watchers 1)
+#+end_src
 ** Codeium
+*** Package init
+#+begin_src emacs-lisp :tangle packages.el
+(package! codeium :recipe (:host github :repo "Exafunction/codeium.el"))
+#+end_src
+#+begin_src emacs-lisp
+(use-package codeium
+    :init
+    ;; use globally
+    (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+    ;; or on a hook
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local completion-at-point-functions '(codeium-completion-at-point))))
+
+    ;; if you want multiple completion backends, use cape (https://github.com/minad/cape):
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local completion-at-point-functions
+    ;;             (list (cape-super-capf #'codeium-completion-at-point #'lsp-completion-at-point)))))
+    ;; an async company-backend is coming soon!
+
+    ;; codeium-completion-at-point is autoloaded, but you can
+    ;; optionally set a timer, which might speed up things as the
+    ;; codeium local language server takes ~0.2s to start up
+    ;; (add-hook 'emacs-startup-hook
+    ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
+
+    ;; :defer t ;; lazy loading, if you want
+)
+#+end_src
+*** Config
+#+begin_src emacs-lisp
+;; we recommend using use-package to organize your init.el
+(use-package codeium
+    :config
+    (setq use-dialog-box nil) ;; do not use popup boxes
+
+    ;; if you don't want to use customize to save the api-key
+    ;; (setq codeium/metadata/api_key "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+
+    ;; get codeium status in the modeline
+    (setq codeium-mode-line-enable
+        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
+    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t)
+    ;; alternatively for a more extensive mode-line
+    ;; (add-to-list 'mode-line-format '(-50 "" codeium-mode-line) t)
+
+    ;; use M-x codeium-diagnose to see apis/fields that would be sent to the local language server
+    (setq codeium-api-enabled
+        (lambda (api)
+            (memq api '(GetCompletions Heartbeat CancelRequest GetAuthToken RegisterUser auth-redirect AcceptCompletion))))
+    ;; you can also set a config for a single buffer like this:
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local codeium/editor_options/tab_size 4)))
+
+    ;; You can overwrite all the codeium configs!
+    ;; for example, we recommend limiting the string sent to codeium for better performance
+    (defun my-codeium/document/text ()
+        (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (min (+ (point) 1000) (point-max))))
+    ;; if you change the text, you should also change the cursor_offset
+    ;; warning: this is measured by UTF-8 encoded bytes
+    (defun my-codeium/document/cursor_offset ()
+        (codeium-utf8-byte-length
+            (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (point))))
+    (setq codeium/document/text 'my-codeium/document/text)
+    (setq codeium/document/cursor_offset 'my-codeium/document/cursor_offset))
+#+end_src
 ** Python
 *** Debugger/style
 #+begin_src elisp
@@ -971,18 +1125,17 @@ I use latex to render math in org.
 #+end_src
 *** Virtual environment
 #+begin_src elisp
-(setq conda-env-autoactivate-mode t)
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
-  (setq venv-location "~/.conda/envs/"))
+  (setq venv-location "~/.virtualenvs"))
 
-(use-package! conda
-  :ensure t
-  :init
-  (setq conda-anaconda-home (expand-file-name "~/.conda"))
-  (setq conda-env-home-directory (expand-file-name "~/.conda")))
+;; (use-package! conda
+;;   :ensure t
+;;   :init
+;;   (setq conda-anaconda-home (expand-file-name "~/.conda"))
+;;   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 #+end_src
-*** Kebindings
+*** Keybindings
 #+begin_src elisp
 (map! :n "SPC g p" #'magit-push
       (:prefix ("M-p" . "Python")
