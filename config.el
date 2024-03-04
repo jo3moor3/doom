@@ -94,6 +94,27 @@ Return nil if on this list."
 
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
 
+(map! :g "C-s" #'save-buffer)
+
+(map! :desc "iedit" :nv "C-;" #'iedit-mode)
+
+(map! :n "M-f" #'consult-ripgrep)
+(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
+(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
+(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
+
+(map! :map emacs-everywhere-mode-map
+      "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
+
+(after! undo-fu
+  (map! :map undo-fu-mode-map
+        "C-S-z" #'undo-fu-only-redo
+         :nvi "C-z" #'undo-fu-only-undo))
+
+(map! :map dired-mode-map
+      :n "h" #'dired-up-directory
+      :n "l" #'dired-find-alternate-file)
+
 ;; Add extensions
 (use-package cape
   :init
@@ -101,13 +122,13 @@ Return nil if on this list."
   ;; used by `completion-at-point'.  The order of the functions matters, the
   ;; first function returning a result wins.  Note that the list of buffer-local
   ;; completion functions takes precedence over the global list.
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dabbrev)
   ;;(add-to-list 'completion-at-point-functions #'cape-capf-super)
   ;;(add-to-list 'completion-at-point-functions #'cape-history)
   ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (add-to-list 'completion-at-point-functions #'cape-file)
   ;;(add-to-list 'completion-at-point-functions #'cape-tex)
   ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
   ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
@@ -117,15 +138,15 @@ Return nil if on this list."
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
 )
 
-;; Combining dabbrev dict and keyword
-(setq-local completion-at-point-functions
-            (list (cape-capf-super #'cape-dabbrev #'cape-dict #'cape-keyword)))
-
+;; (add-hook 'org-mode-hook
+;;         (lambda ()
+;;           (setq-local completion-at-point-functions
+;;                 (list (cape-capf-super #'cape-file #'cape-elisp-block #'codeium-completion-at-point)))))
 ;; Combining Codeium and lsp for Python
 (add-hook 'python-mode-hook
         (lambda ()
           (setq-local completion-at-point-functions
-                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point)))))
+                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point #'cape-file)))))
 
 ;; (setq-local completion-at-point-functions
 ;;             (list (cape-capf-buster #'dabbrev-capf)))
@@ -180,7 +201,7 @@ Return nil if on this list."
 
   (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
 
-(corfu-prescient-mode 1)
+(corfu-prescient-mode t)
 
 (use-package corfu
   ;:custom
@@ -213,27 +234,6 @@ Return nil if on this list."
     (add-hook 'orderless-style-dispatchers #'my/orderless-dispatch-flex-first nil 'local)
   :hook
   (lsp-completion-mode . my/lsp-mode-setup-completion))
-
-(map! :g "C-s" #'save-buffer)
-
-(map! :desc "iedit" :nv "C-;" #'iedit-mode)
-
-(map! :n "M-f" #'consult-ripgrep)
-(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
-(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
-(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
-
-(map! :map emacs-everywhere-mode-map
-      "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
-
-(after! undo-fu
-  (map! :map undo-fu-mode-map
-        "C-S-z" #'undo-fu-only-redo
-         :nvi "C-z" #'undo-fu-only-undo))
-
-(map! :map dired-mode-map
-      :n "h" #'dired-up-directory
-      :n "l" #'dired-find-alternate-file)
 
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
@@ -542,7 +542,7 @@ Return nil if on this list."
 (use-package codeium
     :init
     ;; use globally
-    (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+    ;;(add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
     ;; or on a hook
     ;; (add-hook 'python-mode-hook
     ;;     (lambda ()
@@ -558,8 +558,8 @@ Return nil if on this list."
     ;; codeium-completion-at-point is autoloaded, but you can
     ;; optionally set a timer, which might speed up things as the
     ;; codeium local language server takes ~0.2s to start up
-    ;; (add-hook 'emacs-startup-hook
-    ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
+     (add-hook 'emacs-startup-hook
+      (lambda () (run-with-timer 0.1 nil #'codeium-init)))
 
     ;; :defer t ;; lazy loading, if you want
 )
@@ -621,8 +621,11 @@ Return nil if on this list."
 (map! :n "SPC g p" #'magit-push
       (:prefix ("M-p" . "Python")
       :desc "run python" :nv "p" #'run-python
-      :desc "activate conda" :nv "a" #'conda-env-activate
-      :desc "deactivate conda" :nv "d" #'conda-env-deactivate
+      :desc "add dependency" :nv "a" #'poetry-add
+      :desc "remove dependency" :nv "r" #'poetry-remove
+      :desc "update dependencies" :nv "u" #'poetry-update
+      :desc "show dependencies" :nv "s" #'poetry-show
+      :desc "lock dependencies" :nv "l" #'poetry-lock
       ))
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
