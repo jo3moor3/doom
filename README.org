@@ -14,33 +14,29 @@ My ever expanding all consuming configuration for Doom Emacs.
 
 
 *** TABLE OF CONTENTS :toc:
-- [[#globals][Globals]]
+- [[#global][Global]]
   - [[#constants][Constants]]
-  - [[#convenience][Convenience]]
+  - [[#visuals][Visuals]]
   - [[#keybindings][Keybindings]]
 - [[#completion][Completion]]
   - [[#cape][Cape]]
   - [[#corfu][Corfu]]
   - [[#prescient][Prescient]]
   - [[#orderless][Orderless]]
-- [[#visual][Visual]]
-  - [[#theme][Theme]]
-  - [[#fontsdocument][Fonts/Document]]
-  - [[#faces][Faces]]
-  - [[#files][Files]]
 - [[#dashboard][Dashboard]]
   - [[#banner][Banner]]
-  - [[#menu][Menu]]
+  - [[#splash-phrases][Splash phrases]]
   - [[#quick-actions][Quick actions]]
+  - [[#all-together][All together]]
 - [[#shells][Shells]]
   - [[#eshell][Eshell]]
   - [[#gptshell][GPTshell]]
 - [[#org][Org]]
   - [[#setup][Setup]]
+  - [[#org-download][Org-download]]
   - [[#aesthetics][Aesthetics]]
   - [[#latex][LaTeX]]
   - [[#keybindings-1][Keybindings]]
-- [[#packages][Packages]]
 - [[#init][Init]]
   - [[#inputcompletion][Input/Completion]]
   - [[#ui][UI]]
@@ -50,24 +46,35 @@ My ever expanding all consuming configuration for Doom Emacs.
   - [[#languages][Languages]]
   - [[#emailappconfig][Email/App/Config]]
 - [[#code][Code]]
+  - [[#magit][Magit]]
   - [[#lsp][lsp]]
   - [[#codeium][Codeium]]
   - [[#python][Python]]
-- [[#code-1][Code]]
-  - [[#lsp-1][lsp]]
-  - [[#codeium-1][Codeium]]
-  - [[#python-1][Python]]
 
-* Globals
+* Global
 ** Constants
 *** Disabling
-**** Niceties
-Stop screen flickering, inhibit the quit confirmation, and disable company completion.
-#+begin_src elisp
-;May help sreen flickering
-(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+**** Evil icks
+#+begin_src emacs-lisp
+(after! evil
+  (setq evil-move-cursor-back nil       ; Don't move the block cursor when toggling insert mode
+        evil-kill-on-visual-paste nil)) ; Don't put overwritten text in the kill ring
+#+end_src
+**** Quit confirmation
+Getting rid of quit confirmation. There are already too many confirm prompts as is.
+#+begin_src emacs-lisp
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil) ;Disable company auto-complete
+#+end_src
+**** Org roam completions
+I rather manually insert roam links. They also seem to proc in situations where I want different completions.
+#+begin_src emacs-lisp
+(after! org
+(setq org-roam-completion-everywhere nil)) ;Disable org roam completions
+#+end_src
+**** Double buffering
+This supposedly helps stop screen flickering.
+#+begin_src elisp
+(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 #+end_src
 **** No line numbers list
 List of modes that don't necessarily benefit from having line numbers.
@@ -78,37 +85,11 @@ List of modes that don't necessarily benefit from having line numbers.
                 eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 #+end_src
-*** Enabling
-Better scrolling, quicker which-key, and nested snippets.
-#+begin_src emacs-lisp
-(when (version< "29.0.50" emacs-version)
-  (pixel-scroll-precision-mode))
-
-(setq which-key-idle-delay 0.5)
-
-(setq yas-triggers-in-field t)
-;;(setq gc-cons-threshold 20000000) ;increase garbage collection threshold
-#+end_src
-*** Spelling
-**** Setup
-Adding both French and English dictionaries, a personal dictionary file, as well as a keybinding for stepping through document wide spellchecks.
-#+begin_src  elisp
-(after! ispell
-  (setenv "LANG" "en_US.UTF-8")
-  (setq ispell-dictionary "en_US,fr_FR")
-  (ispell-set-spellchecker-params)
-  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
-
-(setq ispell-personal-dictionary
-      (expand-file-name ".hunspell_en_US" doom-private-dir))
-
-(map! :n "SPC I" #'ispell)
-(map! :n "C-S-i" #'ispell-word)
-#+end_src
 **** Face ignore list
 #+begin_src emacs-lisp
+(after! org
 (set-flyspell-predicate! '(org-mode)
-  #'+org-flyspell-word-p)
+  #'+org-flyspell-word-p))
 
 (defun +org-flyspell-word-p ()
   "Return t if point is on a word that should be spell checked.
@@ -121,6 +102,15 @@ Return nil if on this list."
         org-verbatim
         org-property-value
         org-block-begin-line
+        font-lock-comment-face
+        font-lock-comment-delimiter-face
+        font-lock-constant-face
+        font-lock-keyword-face
+        font-lock-function-name-face
+        font-lock-string-face
+        org-block-end-line
+        org-block-begin-line
+        org-table
         org-column
 		   org-document-info-keyword
 		   org-document-info-keyword
@@ -132,26 +122,29 @@ Return nil if on this list."
 		      if (memq face unsafe-faces)
 		      return t)))))
 #+end_src
-**** Files ignore list
-I can manually spellcheck in certain files. I don't need a million notifications about all the spelling errors in my literate configs' code blocks.
+*** Enabling
+**** Pixel scroll
+Better scrolling
 #+begin_src emacs-lisp
-;; (defvar no-flyspell-list '("config.org"))
-
-;; (defun turn-off-flyspell-if-match ()
-;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
-;;       (flyspell-mode -1)))
-
-;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+(when (version< "29.0.50" emacs-version)
+  (pixel-scroll-precision-mode))
 #+end_src
-*** Info
-My name, email, and the location of my projects.
-#+begin_src elisp
-(setq user-full-name "Theodore Moore"
-      user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/Shaders" "~/code/"))
+**** Garbage threshold
+Increasing the garbage collection threshold.
+#+begin_src emacs-lisp :tangle yes
+;;(setq gc-cons-threshold 20000000)
 #+end_src
-** Convenience
-*** Reloading
+**** YASnippets
+Let the snippets be nested.
+#+begin_src emacs-lisp :tangle yes
+(setq yas-triggers-in-field t)
+#+end_src
+**** Which key
+Make which key popup faster.
+#+begin_src emacs-lisp
+(setq which-key-idle-delay 0.5)
+#+end_src
+**** Reloading
 Strange bug with flyspell where an error occurs after reloading, only fixed by subsequently reloading org.
 I'll work on a cleaner fix for this at some point.
 #+begin_src emacs-lisp
@@ -167,7 +160,7 @@ I'll work on a cleaner fix for this at some point.
 (map! :n "SPC r" #'reload_all)
 
 #+end_src
-*** Bury compile buffer
+**** Bury compile buffer
 #+begin_src emacs-lisp
 (defun bury-compile-buffer-if-successful (buffer string)
   "Bury a compilation buffer if succeeded without warnings "
@@ -186,14 +179,152 @@ I'll work on a cleaner fix for this at some point.
 
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
 #+end_src
+*** Info
+**** Personal
+My name, email, and project locations.
+#+begin_src elisp
+(setq user-full-name "Theodore Moore"
+      user-mail-address "jo3moore@gmail.com")
+(setq projectile-project-search-path '("~/Shaders" "~/code/"))
+#+end_src
+**** Dictionaries
+Adding both French and English dictionaries, a personal dictionary file.
+#+begin_src  elisp
+(after! ispell
+  (setenv "LANG" "en_US.UTF-8")
+  (setq ispell-dictionary "en_US,fr_FR")
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
+
+(setq ispell-personal-dictionary
+      (expand-file-name ".hunspell_en_US" doom-private-dir))
+#+end_src
+** Visuals
+*** Theme
+Using [[https://draculatheme.com/][Dracula theme]] currently (very unique I know) as it was easy to have it system wide.
+Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][doomemacs/themes]]
+#+begin_src emacs-lisp :tangle packages.el
+;; VISUAL
+(package! all-the-icons)
+(package! doom-themes)
+#+end_src
+#+begin_src elisp
+;disabling solaire mode for now because of conflicts
+(after! solaire-mode (solaire-global-mode -1))
+;       Window opacity for seeing my beautiful desktop
+(add-to-list 'default-frame-alist '(alpha . 90))
+;Theme config begins
+(use-package doom-themes
+  :ensure t
+  :config
+  ;Default theme
+  (load-theme 'doom-dracula  t)
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  (setq doom-themes-treemacs-theme "doom-colors") ;; or for treemacs users
+  ;(doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+#+end_src
+*** Fonts/Document
+Setting up font for code/mono space (JetBrains) and for org/variable pitch (Alegreya). Also document setup.
+#+begin_src elisp
+(setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
+(setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
+
+(use-package! visual-fill-column
+  :hook (visual-line-mode . visual-fill-column-mode)
+  :init
+  (setq visual-fill-column-width 120
+        visual-fill-column-center-text t
+        visual-fill-column-fringes-outside-margins nil))
+#+end_src
+*** Faces
+Mostly org customizations right now.
+#+begin_src elisp
+(custom-set-faces!
+`(corfu-default :background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg))
+`(org-block :inherit (fixed-pitch))
+`(org-code :inherit (shadow fixed-pitch))
+'(org-document-info :foreground "wheat")
+'(org-document-info-keyword :inherit (shadow fixed-pitch))
+'(org-document-title :weight bold :foreground "#FFFFFF" :height 2.5 :underline nil)
+'(org-indent :inherit (org-hide fixed-pitch))
+'(org-level-1 :weight bold :foreground "#86BBD8" :height 2.0)
+'(org-level-2 :foreground "#EEB4B3" :height 1.75)
+'(org-level-3 :foreground "#F9DB6D" :height 1.5)
+'(org-level-4 :foreground "#A1E5AB" :height 1.25)
+'(org-level-5 :height 1.15)
+'(org-level-6 :height 1.1)
+'(org-level-7 :height 1.0)
+'(org-level-8 :height 1.0)
+'(org-link :foreground "lavender" :underline t)
+'(org-meta-line :inherit font-lock-comment-face fixed-pitch)
+'(org-property-value :inherit fixed-pitch)
+'(org-special-keyword :inherit font-lock-comment-face fixed-pitch)
+'(org-table :inherit fixed-pitch :foreground "#83a598")
+'(org-tag :inherit shadow fixed-pitch :weight bold :height 0.8)
+'(org-verbatim :inherit shadow fixed-pitch))
+#+end_src
+*** Files
+**** Marginalia
+Slightly more color variation in the dired vertico buffer.
+#+begin_src emacs-lisp
+(after! marginalia
+  (setq marginalia-censor-variables nil)
+
+  (defadvice! +marginalia--anotate-local-file-colorful (cand)
+    "Just a more colourful version of `marginalia--anotate-local-file'."
+    :override #'marginalia--annotate-local-file
+    (when-let (attrs (file-attributes (substitute-in-file-name
+                                       (marginalia--full-candidate cand))
+                                      'integer))
+      (marginalia--fields
+       ((marginalia--file-owner attrs)
+        :width 12 :face 'marginalia-file-owner)
+       ((marginalia--file-modes attrs))
+       ((+marginalia-file-size-colorful (file-attribute-size attrs))
+        :width 7)
+       ((+marginalia--time-colorful (file-attribute-modification-time attrs))
+        :width 12))))
+
+  (defun +marginalia--time-colorful (time)
+    (let* ((seconds (float-time (time-subtract (current-time) time)))
+           (color (doom-blend
+                   (face-attribute 'marginalia-date :foreground nil t)
+                   (face-attribute 'marginalia-documentation :foreground nil t)
+                   (/ 1.0 (log (+ 3 (/ (+ 1 seconds) 345600.0)))))))
+      ;; 1 - log(3 + 1/(days + 1)) % grey
+      (propertize (marginalia--time time) 'face (list :foreground color))))
+
+  (defun +marginalia-file-size-colorful (size)
+    (let* ((size-index (/ (log10 (+ 1 size)) 7.0))
+           (color (if (< size-index 10000000) ; 10m
+                      (doom-blend 'orange 'green size-index)
+                    (doom-blend 'red 'orange (- size-index 1)))))
+      (propertize (file-size-human-readable size) 'face (list :foreground color)))))
+#+end_src
 ** Keybindings
 *** Save
 It's the simple things.
 #+begin_src emacs-lisp
 (map! :g "C-s" #'save-buffer)
 #+end_src
+*** Spelling
+#+begin_src emacs-lisp
+(map! :n "SPC I" #'ispell)
+(map! :n "C-S-i" #'ispell-word)
+#+end_src
 *** Search, find, and replace
-Simultaneous editing via iedit and comfortable searching with consult and Isearch.
+Simultaneous editing via iedit and comfortable searching with consult/Isearch.
+#+begin_src emacs-lisp :tangle packages.el
+(package! iedit)
+#+end_src
 #+begin_src emacs-lisp
 (map! :desc "iedit" :nv "C-;" #'iedit-mode)
 
@@ -235,13 +366,12 @@ Making Dired behave more like ranger without installing the whole ranger convers
   ;; used by `completion-at-point'.  The order of the functions matters, the
   ;; first function returning a result wins.  Note that the list of buffer-local
   ;; completion functions takes precedence over the global list.
-  ;;(add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-capf-super)
   ;;(add-to-list 'completion-at-point-functions #'cape-history)
   ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
-  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (add-to-list 'completion-at-point-functions #'cape-file)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dabbrev) ;; Context
+  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point) ;; Ai
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block) ;; elisp code block
+  (add-to-list 'completion-at-point-functions #'cape-file) ;; Files and directories
   ;;(add-to-list 'completion-at-point-functions #'cape-tex)
   ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
   ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
@@ -252,13 +382,8 @@ Making Dired behave more like ranger without installing the whole ranger convers
 )
 #+end_src
 *** Super Capf
-Merging multiple Capfs.
+Merging multiple Capfs; Combining lsp and Codeium completions for Python.
 #+begin_src emacs-lisp
-;; (add-hook 'org-mode-hook
-;;         (lambda ()
-;;           (setq-local completion-at-point-functions
-;;                 (list (cape-capf-super #'cape-file #'cape-elisp-block #'codeium-completion-at-point)))))
-;; Combining Codeium and lsp for Python
 (add-hook 'python-mode-hook
         (lambda ()
           (setq-local completion-at-point-functions
@@ -268,11 +393,11 @@ Merging multiple Capfs.
 Setting up cache busting so there's always a fresh set of candidates.
 #+begin_src emacs-lisp
 ;; (setq-local completion-at-point-functions
-;;             (list (cape-capf-buster #'dabbrev-capf)))
+;;             (list (cape-capf-buster #'codeium-completion-at-point)))
 #+end_src
 ** Corfu
 *** Defaults
-[[https://github.com/minad/corfu][Corfu (COmpletion in Region FUnction)]] is an alternative to company. I find better it to be better integrated and subsequently faster with a nicer interface..
+[[https://github.com/minad/corfu][Corfu (COmpletion in Region FUnction)]] is an alternative to company. I find better it to be better integrated, faster, and with a nicer interface..
 #+begin_src emacs-lisp :tangle packages.el
 (package! corfu)
 #+end_src
@@ -293,6 +418,7 @@ Setting up cache busting so there's always a fresh set of candidates.
   ;; be used globally (M-/).  See also the customization variable
   ;; `global-corfu-modes' to exclude certain modes.
   :init
+  (corfu-echo-mode t)
   (global-corfu-mode))
 ;; A few more useful configurations...
 (use-package emacs
@@ -305,21 +431,34 @@ Setting up cache busting so there's always a fresh set of candidates.
 #+end_src
 *** Icons
 [[https://github.com/LuigiPiucco/nerd-icons-corfu][nerd-icons-corfu]]
-Not working currently. I'll get to this eventually as long as I stick to Corfu
+[[https://www.nerdfonts.com/cheat-sheet][Nerd Fonts cheatsheet]]
 #+begin_src emacs-lisp :tangle packages.el
-;(package! nerd-icons-corfu)
+(package! nerd-icons-corfu)
 #+end_src
-Formatting the icons.
+Formatting the icons. So many choices 😵‍💫
 #+begin_src emacs-lisp
-;(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
 
-;(setq nerd-icons-corfu-mapping
-      ;; '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-      ;;   (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-      ;;   (t :style "cod" :icon "code" :face font-lock-warning-face)))
-        ;; Remember to add an entry for `t', the library uses that as default.
-
-;; The Custom interface is also supported for tuning the variable above.
+(setq nerd-icons-corfu-mapping
+      '(;; lsp
+        (array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+        (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+        (function :style "md" :icon "function_variant" :face font-lock-function-name-face)
+        (operator :style "cod" :icon "symbol_operator" :face font-lock-comment-delimiter-face)
+        (method :style "cod" :icon "symbol_method" :face font-lock-function-name-face)
+        (param :style "fa" :icon "gear" :face default)
+        (class :style "cod" :icon "symbol_class" :face font-lock-type-face)
+        ; Keyword
+        ; Variable
+        ;; File and Directory
+        (file :style "fa" :icon "file" :face font-lock-string-face)
+        (folder :style "fa" :icon "folder" :face font-lock-doc-face)
+        ;; Codeium
+        (magic :style "fa" :icon "magic" :face font-lock-string-face)
+        ;; Dabbrev
+        (text :style "cod" :icon "library" :face font-lock-string-face)
+        ;; Default
+        (t :style "cod" :icon "code" :face font-lock-warning-face)))
 #+end_src
 *** candidate overlay
 Much better than normal auto completion.
@@ -337,7 +476,6 @@ Much better than normal auto completion.
     ;Whenever I delete these keybindings it throws an error?
     ;Even if I make a more Doom-like keybinding as a replacement...
     (global-set-key (kbd "M-<tab>") 'completion-at-point)
-    ;(global-set-key (kbd "C-<lefttab>") 'corfu-candidate-overlay-complete-at-point)
 
     (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
 #+end_src
@@ -350,6 +488,8 @@ I'm using [[https://github.com/radian-software/prescient.el][prescient]] for fil
 #+end_src
 #+begin_src emacs-lisp
 (corfu-prescient-mode t)
+(setq-default history-length 1000)
+(setq-default prescient-history-length 1000)
 #+end_src
 ** Orderless
 [[https://github.com/oantolin/orderless][Orderless]] is an interesting completion style I've been testing out.
@@ -392,114 +532,6 @@ I'm using [[https://github.com/radian-software/prescient.el][prescient]] for fil
   :hook
   (lsp-completion-mode . my/lsp-mode-setup-completion))
 #+end_src
-* Visual
-** Theme
-Using [[https://draculatheme.com/][Dracula theme]] currently (very unique I know) as it was easy to have it system wide.
-Other themes prepackaged in Doom can be viewed here at [[https://github.com/doomemacs/themes][doomemacs/themes]]
-#+begin_src elisp
-;disabling solaire mode for now because of conflicts
-(after! solaire-mode (solaire-global-mode -1))
-;       Window opacity for seeing my beautiful desktop
-(add-to-list 'default-frame-alist '(alpha . 90))
-;Theme config begins
-(use-package doom-themes
-  :ensure t
-  :config
-  ;Default theme
-  (load-theme 'doom-dracula  t)
-  ;; Global settings (defaults)
-  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-        doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  ;; Enable flashing mode-line on errors
-  (doom-themes-visual-bell-config)
-  ;; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-neotree-config)
-  (setq doom-themes-treemacs-theme "doom-colors") ;; or for treemacs users
-  ;(doom-themes-treemacs-config)
-  ;; Corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
-#+end_src
-
-** Fonts/Document
-Setting up font for code/mono space (JetBrains) and for org/variable pitch (Alegreya). Also document setup.
-#+begin_src elisp
-(setq doom-font (font-spec :family "JetBrainsMonoNerdFont" :size 18))
-(setq doom-variable-pitch-font (font-spec :family "Alegreya" :size 18))
-
-(use-package! visual-fill-column
-  :hook (visual-line-mode . visual-fill-column-mode)
-  :init
-  (setq visual-fill-column-width 120
-        visual-fill-column-center-text t
-        visual-fill-column-fringes-outside-margins nil))
-#+end_src
-** Faces
-Mostly org customizations right now.
-#+begin_src elisp
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- `(corfu-default ((t (:background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg)))))
- '(org-block ((t (:inherit fixed-pitch))))
- '(org-code ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-info ((t (:foreground "tan"))))
- '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
- '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
- '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
- '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
- '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
- '(org-level-5 ((t (:height 1.15))))
- '(org-level-6 ((t (:height 1.1))))
- '(org-level-7 ((t (:height 1.0))))
- '(org-level-8 ((t (:height 1.0))))
- '(org-link ((t (:foreground "lavender" :underline t))))
- '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-property-value ((t (:inherit fixed-pitch))) t)
- '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
- '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
- '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-#+end_src
-** Files
-#+begin_src emacs-lisp
-(after! marginalia
-  (setq marginalia-censor-variables nil)
-
-  (defadvice! +marginalia--anotate-local-file-colorful (cand)
-    "Just a more colourful version of `marginalia--anotate-local-file'."
-    :override #'marginalia--annotate-local-file
-    (when-let (attrs (file-attributes (substitute-in-file-name
-                                       (marginalia--full-candidate cand))
-                                      'integer))
-      (marginalia--fields
-       ((marginalia--file-owner attrs)
-        :width 12 :face 'marginalia-file-owner)
-       ((marginalia--file-modes attrs))
-       ((+marginalia-file-size-colorful (file-attribute-size attrs))
-        :width 7)
-       ((+marginalia--time-colorful (file-attribute-modification-time attrs))
-        :width 12))))
-
-  (defun +marginalia--time-colorful (time)
-    (let* ((seconds (float-time (time-subtract (current-time) time)))
-           (color (doom-blend
-                   (face-attribute 'marginalia-date :foreground nil t)
-                   (face-attribute 'marginalia-documentation :foreground nil t)
-                   (/ 1.0 (log (+ 3 (/ (+ 1 seconds) 345600.0)))))))
-      ;; 1 - log(3 + 1/(days + 1)) % grey
-      (propertize (marginalia--time time) 'face (list :foreground color))))
-
-  (defun +marginalia-file-size-colorful (size)
-    (let* ((size-index (/ (log10 (+ 1 size)) 7.0))
-           (color (if (< size-index 10000000) ; 10m
-                      (doom-blend 'orange 'green size-index)
-                    (doom-blend 'red 'orange (- size-index 1)))))
-      (propertize (file-size-human-readable size) 'face (list :foreground color)))))
-#+end_src
 * Dashboard
 ** Banner
 Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash image currently.
@@ -533,11 +565,111 @@ Custom ASCII banner of my cat's name. I enjoy it more than the fancy-splash imag
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 #+end_src
-** Menu
-Just removing the menu functions for now. All I need functionally are the quick actions but I may replace this with something more aesthetic.
+** Splash phrases
+Over complicating something seemingly simple.
+*** Source
 #+begin_src emacs-lisp
-;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
-(remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
+(defvar splash-phrase-source-folder
+  (expand-file-name "splash-phrases" doom-private-dir)
+  "A folder of text files with a fun phrase on each line.")
+#+end_src
+*** Retrieve
+#+begin_src emacs-lisp
+(defvar splash-phrase-sources
+  (let* ((files (directory-files splash-phrase-source-folder nil "\\.txt\\'"))
+         (sets (delete-dups (mapcar
+                             (lambda (file)
+                               (replace-regexp-in-string "\\(?:-[0-9]+-\\w+\\)?\\.txt" "" file))
+                             files))))
+    (mapcar (lambda (sset)
+              (cons sset
+                    (delq nil (mapcar
+                               (lambda (file)
+                                 (when (string-match-p (regexp-quote sset) file)
+                                   file))
+                               files))))
+            sets))
+  "A list of cons giving the phrase set name, and a list of files which contain phrase components.")
+#+end_src
+*** Randomize
+#+begin_src emacs-lisp
+(defvar splash-phrase-set
+  (nth (random (length splash-phrase-sources)) (mapcar #'car splash-phrase-sources))
+  "The default phrase set. See `splash-phrase-sources'.")
+#+end_src
+*** Changing sets
+#+begin_src emacs-lisp
+(defun splash-phrase-set-random-set ()
+  "Set a new random splash phrase set."
+  (interactive)
+  (setq splash-phrase-set
+        (nth (random (1- (length splash-phrase-sources)))
+             (cl-set-difference (mapcar #'car splash-phrase-sources) (list splash-phrase-set))))
+  (+doom-dashboard-reload t))
+
+(defun splash-phrase-select-set ()
+  "Select a specific splash phrase set."
+  (interactive)
+  (setq splash-phrase-set (completing-read "Phrase set: " (mapcar #'car splash-phrase-sources)))
+  (+doom-dashboard-reload t))
+#+end_src
+*** Caching
+#+begin_src emacs-lisp
+(defvar splash-phrase--cached-lines nil)
+#+end_src
+*** Line from cache
+#+begin_src emacs-lisp
+(defun splash-phrase-get-from-file (file)
+  "Fetch a random line from FILE."
+  (let ((lines (or (cdr (assoc file splash-phrase--cached-lines))
+                   (cdar (push (cons file
+                                     (with-temp-buffer
+                                       (insert-file-contents (expand-file-name file splash-phrase-source-folder))
+                                       (split-string (string-trim (buffer-string)) "\n")))
+                               splash-phrase--cached-lines)))))
+    (nth (random (length lines)) lines)))
+#+end_src
+*** Generate phrase
+#+begin_src emacs-lisp :tangle yes
+(defun splash-phrase (&optional set)
+  "Construct a splash phrase from SET. See `splash-phrase-sources'."
+  (mapconcat
+   #'splash-phrase-get-from-file
+   (cdr (assoc (or set splash-phrase-set) splash-phrase-sources))
+   " "))
+#+end_src
+*** Limit length, allow change
+#+begin_src emacs-lisp
+(defun splash-phrase-dashboard-formatted ()
+  "Get a splash phrase, flow it over multiple lines as needed, and fontify it."
+  (mapconcat
+   (lambda (line)
+     (+doom-dashboard--center
+      +doom-dashboard--width
+      (with-temp-buffer
+        (insert-text-button
+         line
+         'action
+         (lambda (_) (+doom-dashboard-reload t))
+         'face 'doom-dashboard-menu-title
+         'mouse-face 'doom-dashboard-menu-title
+         'help-echo "Random phrase"
+         'follow-link t)
+        (buffer-string))))
+   (split-string
+    (with-temp-buffer
+      (insert (splash-phrase))
+      (setq fill-column (min 70 (/ (* 2 (window-width)) 3)))
+      (fill-region (point-min) (point-max))
+      (buffer-string))
+    "\n")
+   "\n"))
+#+end_src
+*** Centering and newlines
+#+begin_src emacs-lisp
+(defun splash-phrase-dashboard-insert ()
+  "Insert the splash phrase surrounded by newlines."
+  (insert "\n" (splash-phrase-dashboard-formatted) "\n"))
 #+end_src
 ** Quick actions
 This makes the dashboard 1000x more useful. Adapted from [[https://tecosaur.github.io/emacs-config/config.html#dashboard][Tecosaur's Config]].
@@ -566,11 +698,41 @@ Single key press keybindings, a help menu, and shortcuts to everything I could e
 (add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
 (add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
 #+end_src
+** All together
+#+begin_src emacs-lisp
+(defun +doom-dashboard-benchmark-line ()
+  "Insert the load time line."
+  (when doom-init-time
+    (insert
+     "\n\n"
+     (propertize
+      (+doom-dashboard--center
+       +doom-dashboard--width
+       (doom-display-benchmark-h 'return))
+      'face 'doom-dashboard-loaded))))
+
+(setq +doom-dashboard-functions
+      (list #'doom-dashboard-widget-banner
+            #'+doom-dashboard-benchmark-line
+            #'splash-phrase-dashboard-insert
+            #'doom-dashboard-widget-footer))
+
+(defun +doom-dashboard-tweak (&optional _)
+  (with-current-buffer (get-buffer +doom-dashboard-name)
+    (add-hook! '+doom-dashboard-functions (hide-mode-line-mode 1))
+    (setq-local mode-line-format nil
+                evil-normal-state-cursor (list nil))))
+
+(add-hook '+doom-dashboard-mode-hook #'+doom-dashboard-tweak)
+
+(setq +doom-dashboard-name "► Doom"
+      doom-fallback-buffer-name +doom-dashboard-name)
+#+end_src
 * Shells
 ** Eshell
 I was always more of a vterm guy until I recognized a few use cases for the Eshell.
 Namely: tighter Emacs integration (virtual environments) and using Emacs commands.
-In addition to that I found some great completion that make me miss Zsh much less. But there is still a ways to go.
+In addition to that I found some great completion that make me miss Zsh slightly less. But there is still a ways to go.
 *** Profile
 Adds a random color script from [[https://gitlab.com/dwt1/shell-color-scripts][Derek Taylor's Shell Color Scripts]].
 I manually deleted all the ones that I didn't like, or were too big to fit in a small buffer.
@@ -651,6 +813,7 @@ If you use Eshell you need to try to this out. The added Corfu functionality is 
 (advice-add #'corfu-insert :after #'corfu-send-shell)
 #+end_src
 ** GPTshell
+I could just open up a web browser, or I could stay in Emacs and pay for api tokens. I choose the latter 😎
 *** Setup
 #+begin_src emacs-lisp :tangle packages.el
 (package! chatgpt-shell)
@@ -664,6 +827,7 @@ If you use Eshell you need to try to this out. The added Corfu functionality is 
   ((chatgpt-shell-openai-key
     (lambda ()
       (auth-source-pass-get 'secret "openai-key")))))
+(setq chatgpt-shell-welcome-function nil)
 #+end_src
 *** api key
 #+begin_src emacs-lisp
@@ -671,18 +835,19 @@ If you use Eshell you need to try to this out. The added Corfu functionality is 
       (lambda ()
         (nth 0 (process-lines "pass" "show" "openai-key"))))
 #+end_src
+*** keybindings
+#+begin_src emacs-lisp
+(map! :leader
+      :prefix ("o g" . "chatGPT")
+      :desc "open GPTshell" :nv "g" #'chatgpt-shell
+      :desc "explain code" :nv "c" #'chatgpt-explain-code
+      :desc "make unit test" :nv "u" #'chatgpt-generate-unit-test
+      :desc "proofread" :nv "p" #'chatgpt-shell-proofread-region)
+#+end_src
 * Org
 ** Setup
-Important org configurations, [[https://github.com/abo-abo/org-download][org-download]]
+Basic org configurations.
 #+begin_src elisp
-;; Disable spellcheck for org-modern-tag
-(after! spell-fu
-  (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
-
-;; Get rid of org-roam completions
-(setq org-roam-completion-everywhere nil)
-
-;; Basic setup
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
@@ -690,19 +855,29 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
 (add-hook 'org-mode-hook 'org-eldoc-load))
 (setq org-use-property-inheritance t)
 
-;; org download for pasting images
+(setq org-roam-capture-templates `(("d" "default" plain "%?" :target (file+head "${slug}.org" "#+title: ${title}"):unnarrowed t)))
+#+end_src
+** Org-download
+  I use [[https://github.com/abo-abo/org-download][Org-download]] to paste images from the clipboard to org.
+  #+begin_src emacs-lisp :tangle packages.el
+(package! org-download)
+  #+end_src
+#+begin_src emacs-lisp :tangle yes
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
 ** Aesthetics
 *** org vanilla
+**** Ellipsis and bullet levels
 #+begin_src emacs-lisp
 (setq org-ellipsis " ▾")
 (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a.")))
+#+end_src
+**** Lines and pitch
+#+begin_src emacs-lisp
 (after! org
 (setq org-startup-folded t)
-(add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
@@ -711,9 +886,17 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
 (setq mixed-pitch-variable-pitch-cursor nil)
 #+end_src
 *** org-modern
+**** Setup
+#+begin_src emacs-lisp :tangle packages.el
+(package! org-modern)
+#+end_src
 #+begin_src emacs-lisp
 (use-package! org-modern
-  :hook (org-mode . org-modern-mode)
+  :hook (org-mode . org-modern-mode))
+#+end_src
+**** Bullets, todo, blocks, etc
+#+begin_src emacs-lisp
+(use-package! org-modern
   :config
   (setq org-modern-star '("◉" "○" "✸" "✿" "✤" "✜" "◆" "▶")
         org-modern-table-vertical 1
@@ -742,8 +925,14 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
           ("export" "⏩" "⏪"))
         org-modern-progress nil
         org-modern-priority nil
-        org-modern-horizontal-rule (make-string 36 ?─)
-        org-modern-keyword
+        org-modern-horizontal-rule (make-string 36 ?─))
+(custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
+#+end_src
+**** Keyword symbols
+#+begin_src emacs-lisp
+(use-package! org-modern
+  :config
+  (setq org-modern-keyword
         '((t . t)
           ("title" . "𝙏")
           ("subtitle" . "𝙩")
@@ -755,11 +944,6 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
           ("startup" . "⏻")
           ("macro" . "𝓜")
           ("bind" . #("" 0 1 (display (raise -0.1))))
-          ("bibliography" . "")
-          ("print_bibliography" . #("" 0 1 (display (raise -0.1))))
-          ("cite_export" . "⮭")
-          ("print_glossary" . #("ᴬᶻ" 0 1 (display (raise -0.1))))
-          ("glossary_sources" . #("" 0 1 (display (raise -0.14))))
           ("include" . "⇤")
           ("setupfile" . "⇚")
           ("html_head" . "🅷")
@@ -770,10 +954,6 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
           ("latex_header_extra" . "🅻⁺")
           ("latex" . "🅛")
           ("beamer_theme" . "🄱")
-          ("beamer_color_theme" . #("🄱" 1 2 (display (raise -0.12))))
-          ("beamer_font_theme" . "🄱𝐀")
-          ("beamer_header" . "🅱")
-          ("beamer" . "🅑")
           ("attr_latex" . "🄛")
           ("attr_html" . "🄗")
           ("attr_org" . "⒪")
@@ -781,12 +961,17 @@ Important org configurations, [[https://github.com/abo-abo/org-download][org-dow
           ("name" . "⁍")
           ("header" . "›")
           ("caption" . "☰")
-          ("results" . "🠶")))
-  (custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
+          ("results" . "🠶"))))
 #+end_src
 ** LaTeX
 I use latex to render math in org.
 [[https://github.com/io12/org-fragtog][org-fragtog]] is wonderfully convenient, [[https://ctan.org/pkg/dvipng?lang=en][dvipng]] is a must for quick preview generation, and [[https://www.gnu.org/software/auctex/][AUCTeX]] is required for this all to work.
+#+begin_src emacs-lisp :tangle packages.el
+;; MATH
+;(package! xenops)
+(package! org-fragtog)
+(package! auctex)
+#+end_src
 #+begin_src elisp
 ;Make latex fragments easy to edit/preview
 (after! org
@@ -807,34 +992,6 @@ I use latex to render math in org.
       :desc "link url" :nv "u" #'org-cliplink
       :desc "link image" :nv "p" #'org-download-clipboard
       ))
-#+end_src
-* Packages
-#+begin_src elisp :tangle packages.el
-;VISUAL
-(package! all-the-icons)
-(package! doom-themes)
-;PYTHON____________________
-(package! poetry)
-(package! lsp-pyright)
-(package! virtualenvwrapper)
-(package! dap-mode)
-(package! iedit)
-;;(package! lsp-python-ms)
-(package! nose)
-(package! python-pytest)
-(package! py-isort)
-(package! python-black)
-;ORG_____________________
-(package! org-modern)
-(package! org-download)
-(package! pandoc)
-(package! ox-pandoc)
-;MATH____________________
-;(package! xenops)
-(package! org-fragtog)
-(package! auctex)
-;MISC_____________________
-(package! ssh-agency)
 #+end_src
 * Init
 ** Input/Completion
@@ -871,7 +1028,8 @@ I use latex to render math in org.
        nav-flash         ; blink cursor line after big motions
        ;;neotree           ; a project drawer, like NERDTree for vim
        ophints           ; highlight the region an operation acts on
-       (popup +defaults)   ; tame sudden yet inevitable temporary windows
+       (popup +defaults   ; tame sudden yet inevitable temporary windows
+        +all )            ; All temportay or specila buffers starting with * or space are popups
        ;;tabs              ; a tab bar for Emacs
        (treemacs          ; a project drawer, like neotree but cooler
         +lsp +icons )
@@ -961,7 +1119,7 @@ I use latex to render math in org.
        (cc +lsp)         ; C > C++ == 1
        emacs-lisp        ; drown in parentheses
        (gdscript +lsp)   ; the language you waited for
-       json              ; At least it ain't XML
+       ;;json              ; At least it ain't XML
        ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
        (latex +lsp       ; writing papers in Emacs has never been so fun
         +latexmk)
@@ -970,7 +1128,7 @@ I use latex to render math in org.
         +roam2           ; wander around notes
         +pretty          ; better looking org
         +dragndrop       ; drag and drop files/images into org buffers
-        +pandoc          ; export-with-pandoc support
+        ;+pandoc          ; export-with-pandoc support
         )
        (python +lsp      ; beautiful is better than ugly
         +poetry          ; Python dependency manangement
@@ -1050,11 +1208,19 @@ I use latex to render math in org.
        (default +bindings +smartparens))
 #+end_src
 * Code
+** Magit
+#+begin_src elisp :tangle packages.el
+(package! ssh-agency)
+#+end_src
+#+begin_src emacs-lisp
+(map! :n "SPC g p" #'magit-push)
+#+end_src
 ** lsp
 #+begin_src emacs-lisp
 (setq lsp-enable-file-watchers 1)
 #+end_src
 ** Codeium
+[[https://github.com/Exafunction/codeium.el][Codeium]] seems like a good alternative to copilot, especially as it's free.
 *** Package init
 #+begin_src emacs-lisp :tangle packages.el
 (package! codeium :recipe (:host github :repo "Exafunction/codeium.el"))
@@ -1125,6 +1291,14 @@ I use latex to render math in org.
 #+end_src
 ** Python
 *** Debugger/style
+#+begin_src emacs-lisp :tangle packages.el
+;; PYTHON
+;;(package! lsp-python-ms)
+(package! lsp-pyright)
+(package! dap-mode) ;; debugger
+(package! python-black) ;; style guide for python
+(package! py-isort) ;; required for black, reformats code on save
+#+end_src
 #+begin_src elisp
 ;DEBUGGER
 (after! dap-mode
@@ -1135,6 +1309,10 @@ I use latex to render math in org.
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 #+end_src
 *** Virtual environment
+#+begin_src emacs-lisp :tangle packages.el
+(package! poetry)
+(package! virtualenvwrapper)
+#+end_src
 #+begin_src elisp
 (use-package! virtualenvwrapper)
 (after! virtualenvwrapper
@@ -1146,121 +1324,38 @@ I use latex to render math in org.
 ;;   (setq conda-anaconda-home (expand-file-name "~/.conda"))
 ;;   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 #+end_src
+*** Testing
+[[https://github.com/wbolster/emacs-python-pytest][python-pytest]]
+#+begin_src emacs-lisp :tangle packages.el
+(package! python-pytest)
+(package! nose)
+#+end_src
+#+begin_src emacs-lisp
+(use-package python-pytest
+ :custom
+ (python-pytest-confirm t)
+ :config
+ ;; just an extra `-y' after the `-x' suffix
+ (transient-append-suffix
+   'python-pytest-dispatch
+   "-x"
+   '("-y" "The Y" "-y"))
+ ;; group with `-z' after second from the last group,
+ ;; that is before `Run tests'
+ (transient-append-suffix
+   'python-pytest-dispatch
+   '(-2)
+   ["My Z"
+    ("-z" "The Z" "-z")]))
+#+end_src
 *** Keybindings
 #+begin_src elisp
-(map! :n "SPC g p" #'magit-push
-      (:prefix ("M-p" . "Python")
+(map! (:prefix ("M-p" . "Python")
       :desc "run python" :nv "p" #'run-python
       :desc "add dependency" :nv "a" #'poetry-add
       :desc "remove dependency" :nv "r" #'poetry-remove
       :desc "update dependencies" :nv "u" #'poetry-update
       :desc "show dependencies" :nv "s" #'poetry-show
       :desc "lock dependencies" :nv "l" #'poetry-lock
-      ))
-#+end_src
-* Code
-** lsp
-#+begin_src emacs-lisp
-(setq lsp-enable-file-watchers 1)
-#+end_src
-** Codeium
-*** Package init
-#+begin_src emacs-lisp :tangle packages.el
-(package! codeium :recipe (:host github :repo "Exafunction/codeium.el"))
-#+end_src
-#+begin_src emacs-lisp
-(use-package codeium
-    :init
-    ;; use globally
-    (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
-    ;; or on a hook
-    ;; (add-hook 'python-mode-hook
-    ;;     (lambda ()
-    ;;         (setq-local completion-at-point-functions '(codeium-completion-at-point))))
-
-    ;; if you want multiple completion backends, use cape (https://github.com/minad/cape):
-    ;; (add-hook 'python-mode-hook
-    ;;     (lambda ()
-    ;;         (setq-local completion-at-point-functions
-    ;;             (list (cape-super-capf #'codeium-completion-at-point #'lsp-completion-at-point)))))
-    ;; an async company-backend is coming soon!
-
-    ;; codeium-completion-at-point is autoloaded, but you can
-    ;; optionally set a timer, which might speed up things as the
-    ;; codeium local language server takes ~0.2s to start up
-    ;; (add-hook 'emacs-startup-hook
-    ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
-
-    ;; :defer t ;; lazy loading, if you want
-)
-#+end_src
-*** Config
-#+begin_src emacs-lisp
-;; we recommend using use-package to organize your init.el
-(use-package codeium
-    :config
-    (setq use-dialog-box nil) ;; do not use popup boxes
-
-    ;; if you don't want to use customize to save the api-key
-    ;; (setq codeium/metadata/api_key "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-
-    ;; get codeium status in the modeline
-    (setq codeium-mode-line-enable
-        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
-    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t)
-    ;; alternatively for a more extensive mode-line
-    ;; (add-to-list 'mode-line-format '(-50 "" codeium-mode-line) t)
-
-    ;; use M-x codeium-diagnose to see apis/fields that would be sent to the local language server
-    (setq codeium-api-enabled
-        (lambda (api)
-            (memq api '(GetCompletions Heartbeat CancelRequest GetAuthToken RegisterUser auth-redirect AcceptCompletion))))
-    ;; you can also set a config for a single buffer like this:
-    ;; (add-hook 'python-mode-hook
-    ;;     (lambda ()
-    ;;         (setq-local codeium/editor_options/tab_size 4)))
-
-    ;; You can overwrite all the codeium configs!
-    ;; for example, we recommend limiting the string sent to codeium for better performance
-    (defun my-codeium/document/text ()
-        (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (min (+ (point) 1000) (point-max))))
-    ;; if you change the text, you should also change the cursor_offset
-    ;; warning: this is measured by UTF-8 encoded bytes
-    (defun my-codeium/document/cursor_offset ()
-        (codeium-utf8-byte-length
-            (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (point))))
-    (setq codeium/document/text 'my-codeium/document/text)
-    (setq codeium/document/cursor_offset 'my-codeium/document/cursor_offset))
-#+end_src
-** Python
-*** Debugger/style
-#+begin_src elisp
-;DEBUGGER
-(after! dap-mode
-  (setq dap-python-debuger 'debugpy))
-;Style
-(use-package! python-black
-  :after python
-  :hook (python-mode . python-black-on-save-mode-enable-dwim))
-#+end_src
-*** Virtual environment
-#+begin_src elisp
-(use-package! virtualenvwrapper)
-(after! virtualenvwrapper
-  (setq venv-location "~/.virtualenvs"))
-
-;; (use-package! conda
-;;   :ensure t
-;;   :init
-;;   (setq conda-anaconda-home (expand-file-name "~/.conda"))
-;;   (setq conda-env-home-directory (expand-file-name "~/.conda")))
-#+end_src
-*** Keybindings
-#+begin_src elisp
-(map! :n "SPC g p" #'magit-push
-      (:prefix ("M-p" . "Python")
-      :desc "run python" :nv "p" #'run-python
-      :desc "activate conda" :nv "a" #'conda-env-activate
-      :desc "deactivate conda" :nv "d" #'conda-env-deactivate
       ))
 #+end_src
