@@ -1,7 +1,13 @@
-;May help sreen flickering
-(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+(after! evil
+  (setq evil-move-cursor-back nil       ; Don't move the block cursor when toggling insert mode
+        evil-kill-on-visual-paste nil)) ; Don't put overwritten text in the kill ring
+
 (setq confirm-kill-emacs nil) ;Disable quit confirmation
-(setq company-idle-delay nil) ;Disable company auto-complete
+
+(after! org
+(setq org-roam-completion-everywhere nil)) ;Disable org roam completions
+
+(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
 
 (dolist (mode '(org-mode-hook
                 term-mode-hook
@@ -9,28 +15,9 @@
                 eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(when (version< "29.0.50" emacs-version)
-  (pixel-scroll-precision-mode))
-
-(setq which-key-idle-delay 0.5)
-
-(setq yas-triggers-in-field t)
-;;(setq gc-cons-threshold 20000000) ;increase garbage collection threshold
-
-(after! ispell
-  (setenv "LANG" "en_US.UTF-8")
-  (setq ispell-dictionary "en_US,fr_FR")
-  (ispell-set-spellchecker-params)
-  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
-
-(setq ispell-personal-dictionary
-      (expand-file-name ".hunspell_en_US" doom-private-dir))
-
-(map! :n "SPC I" #'ispell)
-(map! :n "C-S-i" #'ispell-word)
-
+(after! org
 (set-flyspell-predicate! '(org-mode)
-  #'+org-flyspell-word-p)
+  #'+org-flyspell-word-p))
 
 (defun +org-flyspell-word-p ()
   "Return t if point is on a word that should be spell checked.
@@ -43,6 +30,15 @@ Return nil if on this list."
         org-verbatim
         org-property-value
         org-block-begin-line
+        font-lock-comment-face
+        font-lock-comment-delimiter-face
+        font-lock-constant-face
+        font-lock-keyword-face
+        font-lock-function-name-face
+        font-lock-string-face
+        org-block-end-line
+        org-block-begin-line
+        org-table
         org-column
 		   org-document-info-keyword
 		   org-document-info-keyword
@@ -54,17 +50,14 @@ Return nil if on this list."
 		      if (memq face unsafe-faces)
 		      return t)))))
 
-;; (defvar no-flyspell-list '("config.org"))
+(when (version< "29.0.50" emacs-version)
+  (pixel-scroll-precision-mode))
 
-;; (defun turn-off-flyspell-if-match ()
-;;   (if (member (file-name-nondirectory (buffer-file-name)) no-flyspell-list)
-;;       (flyspell-mode -1)))
+;;(setq gc-cons-threshold 20000000)
 
-;; (add-hook 'find-file-hook #'turn-off-flyspell-if-match)
+(setq yas-triggers-in-field t)
 
-(setq user-full-name "Theodore Moore"
-      user-mail-address "jo3moore@gmail.com")
-(setq projectile-project-search-path '("~/Shaders" "~/code/"))
+(setq which-key-idle-delay 0.5)
 
 (defun reload_all ()
 (interactive)
@@ -94,146 +87,18 @@ Return nil if on this list."
 
 (add-hook 'compilation-finish-functions #'bury-compile-buffer-if-successful)
 
-(map! :g "C-s" #'save-buffer)
+(setq user-full-name "Theodore Moore"
+      user-mail-address "jo3moore@gmail.com")
+(setq projectile-project-search-path '("~/Shaders" "~/code/"))
 
-(map! :desc "iedit" :nv "C-;" #'iedit-mode)
+(after! ispell
+  (setenv "LANG" "en_US.UTF-8")
+  (setq ispell-dictionary "en_US,fr_FR")
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "en_US,fr_FR"))
 
-(map! :n "M-f" #'consult-ripgrep)
-(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
-(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
-(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
-
-(map! :map emacs-everywhere-mode-map
-      "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
-
-(after! undo-fu
-  (map! :map undo-fu-mode-map
-        "C-S-z" #'undo-fu-only-redo
-         :nvi "C-z" #'undo-fu-only-undo))
-
-(map! :map dired-mode-map
-      :n "h" #'dired-up-directory
-      :n "l" #'dired-find-alternate-file)
-
-;; Add extensions
-(use-package cape
-  :init
-  ;; Add to the global default value of `completion-at-point-functions' which is
-  ;; used by `completion-at-point'.  The order of the functions matters, the
-  ;; first function returning a result wins.  Note that the list of buffer-local
-  ;; completion functions takes precedence over the global list.
-  ;;(add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-capf-super)
-  ;;(add-to-list 'completion-at-point-functions #'cape-history)
-  ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
-  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
-  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
-  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
-  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
-  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-  ;;(add-to-list 'completion-at-point-functions #'cape-line)
-)
-
-;; (add-hook 'org-mode-hook
-;;         (lambda ()
-;;           (setq-local completion-at-point-functions
-;;                 (list (cape-capf-super #'cape-file #'cape-elisp-block #'codeium-completion-at-point)))))
-;; Combining Codeium and lsp for Python
-(add-hook 'python-mode-hook
-        (lambda ()
-          (setq-local completion-at-point-functions
-                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point #'cape-file)))))
-
-;; (setq-local completion-at-point-functions
-;;             (list (cape-capf-buster #'dabbrev-capf)))
-
-(use-package corfu
-  ;; Optional customizations
-   :custom
-  ;;(corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-  ;; (corfu-auto t)                 ;; Enable auto completion
-  ;; (corfu-separator ?\s)          ;; Orderless field separator
-  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-   (corfu-preview-current nil)    ;; Disable current candidate preview
-  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
-  ;; be used globally (M-/).  See also the customization variable
-  ;; `global-corfu-modes' to exclude certain modes.
-  :init
-  (global-corfu-mode))
-;; A few more useful configurations...
-(use-package emacs
-  :init
-  ;; TAB cycle if there are only few candidates
-  (setq completion-cycle-threshold 0)
-  ;; Enable indentation+completion using the TAB key.
-  ;; `completion-at-point' is often bound to M-TAB.
-  (setq tab-always-indent 'complete))
-
-;(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
-
-;(setq nerd-icons-corfu-mapping
-      ;; '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-      ;;   (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-      ;;   (t :style "cod" :icon "code" :face font-lock-warning-face)))
-        ;; Remember to add an entry for `t', the library uses that as default.
-
-;; The Custom interface is also supported for tuning the variable above.
-
-(use-package corfu-candidate-overlay
-  :after corfu
-  :config
-  ;; enable corfu-candidate-overlay mode globally
-  ;; this relies on having corfu-auto set to nil
-  (corfu-candidate-overlay-mode +1)
-
-  ;Whenever I delete these keybindings it throws an error?
-  ;Even if I make a more Doom-like keybinding as a replacement...
-  (global-set-key (kbd "M-<tab>") 'completion-at-point)
-  ;(global-set-key (kbd "C-<lefttab>") 'corfu-candidate-overlay-complete-at-point)
-
-  (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
-
-(corfu-prescient-mode t)
-
-(use-package corfu
-  ;:custom
-  ;; (corfu-separator ?_) ;; Set to orderless separator, if not using space
-  :bind
-  ;; Configure SPC for separator insertion
-  (:map corfu-map ("SPC" . corfu-insert-separator)))
-;; Optionally use the `orderless' completion style.
-(use-package orderless
-  :init
-  ;; Configure a custom style dispatcher (see the Consult wiki)
-  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
-  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
-  (setq completion-styles '(orderless basic)
-        completion-category-defaults nil
-        completion-category-overrides '((file (styles partial-completion)))))
-
-(use-package lsp-mode
-  :custom
-  (lsp-completion-provider :none) ;; we use Corfu!
-  :init
-  (defun my/orderless-dispatch-flex-first (_pattern index _total)
-    (and (eq index 0) 'orderless-flex))
-
-  (defun my/lsp-mode-setup-completion ()
-    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-          '(orderless))) ;; Configure orderless
-
-   ;; Optionally configure the first word as flex filtered.
-    (add-hook 'orderless-style-dispatchers #'my/orderless-dispatch-flex-first nil 'local)
-  :hook
-  (lsp-completion-mode . my/lsp-mode-setup-completion))
+(setq ispell-personal-dictionary
+      (expand-file-name ".hunspell_en_US" doom-private-dir))
 
 ;disabling solaire mode for now because of conflicts
 (after! solaire-mode (solaire-global-mode -1))
@@ -267,33 +132,29 @@ Return nil if on this list."
         visual-fill-column-center-text t
         visual-fill-column-fringes-outside-margins nil))
 
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- `(corfu-default ((t (:background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg)))))
- '(org-block ((t (:inherit fixed-pitch))))
- '(org-code ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-info ((t (:foreground "tan"))))
- '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
- '(org-document-title ((t (:weight bold :foreground "#FFFFFF" :height 2.5 :underline nil))))
- '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
- '(org-level-1 ((t (:weight bold :foreground "#86BBD8" :height 2.0))))
- '(org-level-2 ((t (:foreground "#EEB4B3" :height 1.75))))
- '(org-level-3 ((t (:foreground "#F9DB6D" :height 1.5))))
- '(org-level-4 ((t (:foreground "#A1E5AB" :height 1.25))))
- '(org-level-5 ((t (:height 1.15))))
- '(org-level-6 ((t (:height 1.1))))
- '(org-level-7 ((t (:height 1.0))))
- '(org-level-8 ((t (:height 1.0))))
- '(org-link ((t (:foreground "lavender" :underline t))))
- '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-property-value ((t (:inherit fixed-pitch))) t)
- '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
- '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
- '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
- '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+(custom-set-faces!
+`(corfu-default :background ,(doom-color 'bg-alt) :foreground ,(doom-color 'fg))
+`(org-block :inherit (fixed-pitch))
+`(org-code :inherit (shadow fixed-pitch))
+'(org-document-info :foreground "wheat")
+'(org-document-info-keyword :inherit (shadow fixed-pitch))
+'(org-document-title :weight bold :foreground "#FFFFFF" :height 2.5 :underline nil)
+'(org-indent :inherit (org-hide fixed-pitch))
+'(org-level-1 :weight bold :foreground "#86BBD8" :height 2.0)
+'(org-level-2 :foreground "#EEB4B3" :height 1.75)
+'(org-level-3 :foreground "#F9DB6D" :height 1.5)
+'(org-level-4 :foreground "#A1E5AB" :height 1.25)
+'(org-level-5 :height 1.15)
+'(org-level-6 :height 1.1)
+'(org-level-7 :height 1.0)
+'(org-level-8 :height 1.0)
+'(org-link :foreground "lavender" :underline t)
+'(org-meta-line :inherit font-lock-comment-face fixed-pitch)
+'(org-property-value :inherit fixed-pitch)
+'(org-special-keyword :inherit font-lock-comment-face fixed-pitch)
+'(org-table :inherit fixed-pitch :foreground "#83a598")
+'(org-tag :inherit shadow fixed-pitch :weight bold :height 0.8)
+'(org-verbatim :inherit shadow fixed-pitch))
 
 (after! marginalia
   (setq marginalia-censor-variables nil)
@@ -329,6 +190,159 @@ Return nil if on this list."
                     (doom-blend 'red 'orange (- size-index 1)))))
       (propertize (file-size-human-readable size) 'face (list :foreground color)))))
 
+(map! :g "C-s" #'save-buffer)
+
+(map! :n "SPC I" #'ispell)
+(map! :n "C-S-i" #'ispell-word)
+
+(map! :desc "iedit" :nv "C-;" #'iedit-mode)
+
+(map! :n "M-f" #'consult-ripgrep)
+(map! :after evil :gnvi "C-f" #'isearch-toggle-word)
+(define-key isearch-mode-map "\C-j" 'isearch-repeat-forward)
+(define-key isearch-mode-map "\C-k" 'isearch-repeat-backward)
+
+(map! :map emacs-everywhere-mode-map
+      "C-c C-c" #'emacs-everywhere--finish-or-ctrl-c-ctrl-c)
+
+(after! undo-fu
+  (map! :map undo-fu-mode-map
+        "C-S-z" #'undo-fu-only-redo
+         :nvi "C-z" #'undo-fu-only-undo))
+
+(map! :map dired-mode-map
+      :n "h" #'dired-up-directory
+      :n "l" #'dired-find-alternate-file)
+
+;; Add extensions
+(use-package cape
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dabbrev) ;; Context
+  (add-to-list 'completion-at-point-functions #'codeium-completion-at-point) ;; Ai
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block) ;; elisp code block
+  (add-to-list 'completion-at-point-functions #'cape-file) ;; Files and directories
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+)
+
+(add-hook 'python-mode-hook
+        (lambda ()
+          (setq-local completion-at-point-functions
+                (list (cape-capf-super #'codeium-completion-at-point #'lsp-completion-at-point #'cape-file)))))
+
+;; (setq-local completion-at-point-functions
+;;             (list (cape-capf-buster #'codeium-completion-at-point)))
+
+(use-package corfu
+  ;; Optional customizations
+   :custom
+  ;;(corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;; (corfu-auto t)                 ;; Enable auto completion
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+   (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+  ;; be used globally (M-/).  See also the customization variable
+  ;; `global-corfu-modes' to exclude certain modes.
+  :init
+  (corfu-echo-mode t)
+  (global-corfu-mode))
+;; A few more useful configurations...
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 0)
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
+
+(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+
+(setq nerd-icons-corfu-mapping
+      '(;; lsp
+        (array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+        (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+        (function :style "md" :icon "function_variant" :face font-lock-function-name-face)
+        (operator :style "cod" :icon "symbol_operator" :face font-lock-comment-delimiter-face)
+        (method :style "cod" :icon "symbol_method" :face font-lock-function-name-face)
+        (param :style "fa" :icon "gear" :face default)
+        (class :style "cod" :icon "symbol_class" :face font-lock-type-face)
+        ; Keyword
+        ; Variable
+        ;; File and Directory
+        (file :style "fa" :icon "file" :face font-lock-string-face)
+        (folder :style "fa" :icon "folder" :face font-lock-doc-face)
+        ;; Codeium
+        (magic :style "fa" :icon "magic" :face font-lock-string-face)
+        ;; Dabbrev
+        (text :style "cod" :icon "library" :face font-lock-string-face)
+        ;; Default
+        (t :style "cod" :icon "code" :face font-lock-warning-face)))
+
+(use-package corfu-candidate-overlay
+  :after corfu
+  :config
+  ;; enable corfu-candidate-overlay mode globally
+  ;; this relies on having corfu-auto set to nil
+  (corfu-candidate-overlay-mode +1)
+
+  ;Whenever I delete these keybindings it throws an error?
+  ;Even if I make a more Doom-like keybinding as a replacement...
+  (global-set-key (kbd "M-<tab>") 'completion-at-point)
+
+  (map! :map 'override "C-<iso-lefttab>" #'corfu-candidate-overlay-complete-at-point))
+
+(corfu-prescient-mode t)
+(setq-default history-length 1000)
+(setq-default prescient-history-length 1000)
+
+(use-package corfu
+  ;:custom
+  ;; (corfu-separator ?_) ;; Set to orderless separator, if not using space
+  :bind
+  ;; Configure SPC for separator insertion
+  (:map corfu-map ("SPC" . corfu-insert-separator)))
+;; Optionally use the `orderless' completion style.
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package lsp-mode
+  :custom
+  (lsp-completion-provider :none) ;; we use Corfu!
+  :init
+  (defun my/orderless-dispatch-flex-first (_pattern index _total)
+    (and (eq index 0) 'orderless-flex))
+
+  (defun my/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(orderless))) ;; Configure orderless
+
+   ;; Optionally configure the first word as flex filtered.
+    (add-hook 'orderless-style-dispatchers #'my/orderless-dispatch-flex-first nil 'local)
+  :hook
+  (lsp-completion-mode . my/lsp-mode-setup-completion))
+
 (setq fancy-splash-image (concat doom-private-dir "/home/moore/Pictures/bengal.png"))
 
 (defun NONO-EMACS ()
@@ -358,8 +372,91 @@ Return nil if on this list."
 
 (setq +doom-dashboard-ascii-banner-fn #'NONO-EMACS)
 
-;;(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2)
-(remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
+(defvar splash-phrase-source-folder
+  (expand-file-name "splash-phrases" doom-private-dir)
+  "A folder of text files with a fun phrase on each line.")
+
+(defvar splash-phrase-sources
+  (let* ((files (directory-files splash-phrase-source-folder nil "\\.txt\\'"))
+         (sets (delete-dups (mapcar
+                             (lambda (file)
+                               (replace-regexp-in-string "\\(?:-[0-9]+-\\w+\\)?\\.txt" "" file))
+                             files))))
+    (mapcar (lambda (sset)
+              (cons sset
+                    (delq nil (mapcar
+                               (lambda (file)
+                                 (when (string-match-p (regexp-quote sset) file)
+                                   file))
+                               files))))
+            sets))
+  "A list of cons giving the phrase set name, and a list of files which contain phrase components.")
+
+(defvar splash-phrase-set
+  (nth (random (length splash-phrase-sources)) (mapcar #'car splash-phrase-sources))
+  "The default phrase set. See `splash-phrase-sources'.")
+
+(defun splash-phrase-set-random-set ()
+  "Set a new random splash phrase set."
+  (interactive)
+  (setq splash-phrase-set
+        (nth (random (1- (length splash-phrase-sources)))
+             (cl-set-difference (mapcar #'car splash-phrase-sources) (list splash-phrase-set))))
+  (+doom-dashboard-reload t))
+
+(defun splash-phrase-select-set ()
+  "Select a specific splash phrase set."
+  (interactive)
+  (setq splash-phrase-set (completing-read "Phrase set: " (mapcar #'car splash-phrase-sources)))
+  (+doom-dashboard-reload t))
+
+(defvar splash-phrase--cached-lines nil)
+
+(defun splash-phrase-get-from-file (file)
+  "Fetch a random line from FILE."
+  (let ((lines (or (cdr (assoc file splash-phrase--cached-lines))
+                   (cdar (push (cons file
+                                     (with-temp-buffer
+                                       (insert-file-contents (expand-file-name file splash-phrase-source-folder))
+                                       (split-string (string-trim (buffer-string)) "\n")))
+                               splash-phrase--cached-lines)))))
+    (nth (random (length lines)) lines)))
+
+(defun splash-phrase (&optional set)
+  "Construct a splash phrase from SET. See `splash-phrase-sources'."
+  (mapconcat
+   #'splash-phrase-get-from-file
+   (cdr (assoc (or set splash-phrase-set) splash-phrase-sources))
+   " "))
+
+(defun splash-phrase-dashboard-formatted ()
+  "Get a splash phrase, flow it over multiple lines as needed, and fontify it."
+  (mapconcat
+   (lambda (line)
+     (+doom-dashboard--center
+      +doom-dashboard--width
+      (with-temp-buffer
+        (insert-text-button
+         line
+         'action
+         (lambda (_) (+doom-dashboard-reload t))
+         'face 'doom-dashboard-menu-title
+         'mouse-face 'doom-dashboard-menu-title
+         'help-echo "Random phrase"
+         'follow-link t)
+        (buffer-string))))
+   (split-string
+    (with-temp-buffer
+      (insert (splash-phrase))
+      (setq fill-column (min 70 (/ (* 2 (window-width)) 3)))
+      (fill-region (point-min) (point-max))
+      (buffer-string))
+    "\n")
+   "\n"))
+
+(defun splash-phrase-dashboard-insert ()
+  "Insert the splash phrase surrounded by newlines."
+  (insert "\n" (splash-phrase-dashboard-formatted) "\n"))
 
 (map! :leader :desc "Dashboard" "d" #'+doom-dashboard/open)
 
@@ -383,6 +480,34 @@ Return nil if on this list."
 (add-transient-hook! #'+doom-dashboard-mode (+doom-dashboard-setup-modified-keymap))
 (add-transient-hook! #'+doom-dashboard-mode :append (+doom-dashboard-setup-modified-keymap))
 (add-hook! 'doom-init-ui-hook :append (+doom-dashboard-setup-modified-keymap))
+
+(defun +doom-dashboard-benchmark-line ()
+  "Insert the load time line."
+  (when doom-init-time
+    (insert
+     "\n\n"
+     (propertize
+      (+doom-dashboard--center
+       +doom-dashboard--width
+       (doom-display-benchmark-h 'return))
+      'face 'doom-dashboard-loaded))))
+
+(setq +doom-dashboard-functions
+      (list #'doom-dashboard-widget-banner
+            #'+doom-dashboard-benchmark-line
+            #'splash-phrase-dashboard-insert
+            #'doom-dashboard-widget-footer))
+
+(defun +doom-dashboard-tweak (&optional _)
+  (with-current-buffer (get-buffer +doom-dashboard-name)
+    (add-hook! '+doom-dashboard-functions (hide-mode-line-mode 1))
+    (setq-local mode-line-format nil
+                evil-normal-state-cursor (list nil))))
+
+(add-hook '+doom-dashboard-mode-hook #'+doom-dashboard-tweak)
+
+(setq +doom-dashboard-name "► Doom"
+      doom-fallback-buffer-name +doom-dashboard-name)
 
 ;;Only setup required besides downloading the package
 (require 'pcmpl-args)
@@ -410,19 +535,19 @@ Return nil if on this list."
   ((chatgpt-shell-openai-key
     (lambda ()
       (auth-source-pass-get 'secret "openai-key")))))
+(setq chatgpt-shell-welcome-function nil)
 
 (setq chatgpt-shell-openai-key
       (lambda ()
         (nth 0 (process-lines "pass" "show" "openai-key"))))
 
-;; Disable spellcheck for org-modern-tag
-(after! spell-fu
-  (cl-pushnew 'org-modern-tag (alist-get 'org-mode +spell-excluded-faces-alist)))
+(map! :leader
+      :prefix ("o g" . "chatGPT")
+      :desc "open GPTshell" :nv "g" #'chatgpt-shell
+      :desc "explain code" :nv "c" #'chatgpt-explain-code
+      :desc "make unit test" :nv "u" #'chatgpt-generate-unit-test
+      :desc "proofread" :nv "p" #'chatgpt-shell-proofread-region)
 
-;; Get rid of org-roam completions
-(setq org-roam-completion-everywhere nil)
-
-;; Basic setup
 (after! org
 (setq org-element-use-cache nil)
 (setq org-directory "~/org/")
@@ -430,16 +555,17 @@ Return nil if on this list."
 (add-hook 'org-mode-hook 'org-eldoc-load))
 (setq org-use-property-inheritance t)
 
-;; org download for pasting images
+(setq org-roam-capture-templates `(("d" "default" plain "%?" :target (file+head "${slug}.org" "#+title: ${title}"):unnarrowed t)))
+
 (setq-default org-download-image-dir: "~/Pictures/org-download")
 (require 'org-download)
 (add-hook 'dired-mode-hook 'org-download-enable)
 
 (setq org-ellipsis " ▾")
 (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a.")))
+
 (after! org
 (setq org-startup-folded t)
-(add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-mode-hook '+org-pretty-mode)
 (add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
@@ -448,7 +574,9 @@ Return nil if on this list."
 (setq mixed-pitch-variable-pitch-cursor nil)
 
 (use-package! org-modern
-  :hook (org-mode . org-modern-mode)
+  :hook (org-mode . org-modern-mode))
+
+(use-package! org-modern
   :config
   (setq org-modern-star '("◉" "○" "✸" "✿" "✤" "✜" "◆" "▶")
         org-modern-table-vertical 1
@@ -477,8 +605,12 @@ Return nil if on this list."
           ("export" "⏩" "⏪"))
         org-modern-progress nil
         org-modern-priority nil
-        org-modern-horizontal-rule (make-string 36 ?─)
-        org-modern-keyword
+        org-modern-horizontal-rule (make-string 36 ?─))
+(custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
+
+(use-package! org-modern
+  :config
+  (setq org-modern-keyword
         '((t . t)
           ("title" . "𝙏")
           ("subtitle" . "𝙩")
@@ -490,11 +622,6 @@ Return nil if on this list."
           ("startup" . "⏻")
           ("macro" . "𝓜")
           ("bind" . #("" 0 1 (display (raise -0.1))))
-          ("bibliography" . "")
-          ("print_bibliography" . #("" 0 1 (display (raise -0.1))))
-          ("cite_export" . "⮭")
-          ("print_glossary" . #("ᴬᶻ" 0 1 (display (raise -0.1))))
-          ("glossary_sources" . #("" 0 1 (display (raise -0.14))))
           ("include" . "⇤")
           ("setupfile" . "⇚")
           ("html_head" . "🅷")
@@ -505,10 +632,6 @@ Return nil if on this list."
           ("latex_header_extra" . "🅻⁺")
           ("latex" . "🅛")
           ("beamer_theme" . "🄱")
-          ("beamer_color_theme" . #("🄱" 1 2 (display (raise -0.12))))
-          ("beamer_font_theme" . "🄱𝐀")
-          ("beamer_header" . "🅱")
-          ("beamer" . "🅑")
           ("attr_latex" . "🄛")
           ("attr_html" . "🄗")
           ("attr_org" . "⒪")
@@ -516,8 +639,7 @@ Return nil if on this list."
           ("name" . "⁍")
           ("header" . "›")
           ("caption" . "☰")
-          ("results" . "🠶")))
-  (custom-set-faces! '(org-modern-statistics :inherit org-checkbox-statistics-todo)))
+          ("results" . "🠶"))))
 
 ;Make latex fragments easy to edit/preview
 (after! org
@@ -536,6 +658,8 @@ Return nil if on this list."
       :desc "link url" :nv "u" #'org-cliplink
       :desc "link image" :nv "p" #'org-download-clipboard
       ))
+
+(map! :n "SPC g p" #'magit-push)
 
 (setq lsp-enable-file-watchers 1)
 
@@ -618,8 +742,24 @@ Return nil if on this list."
 ;;   (setq conda-anaconda-home (expand-file-name "~/.conda"))
 ;;   (setq conda-env-home-directory (expand-file-name "~/.conda")))
 
-(map! :n "SPC g p" #'magit-push
-      (:prefix ("M-p" . "Python")
+(use-package python-pytest
+ :custom
+ (python-pytest-confirm t)
+ :config
+ ;; just an extra `-y' after the `-x' suffix
+ (transient-append-suffix
+   'python-pytest-dispatch
+   "-x"
+   '("-y" "The Y" "-y"))
+ ;; group with `-z' after second from the last group,
+ ;; that is before `Run tests'
+ (transient-append-suffix
+   'python-pytest-dispatch
+   '(-2)
+   ["My Z"
+    ("-z" "The Z" "-z")]))
+
+(map! (:prefix ("M-p" . "Python")
       :desc "run python" :nv "p" #'run-python
       :desc "add dependency" :nv "a" #'poetry-add
       :desc "remove dependency" :nv "r" #'poetry-remove

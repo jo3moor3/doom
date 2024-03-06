@@ -27,7 +27,8 @@ modeline          ; snazzy, Atom-inspired modeline, plus API
 nav-flash         ; blink cursor line after big motions
 ;;neotree           ; a project drawer, like NERDTree for vim
 ophints           ; highlight the region an operation acts on
-(popup +defaults)   ; tame sudden yet inevitable temporary windows
+(popup +defaults   ; tame sudden yet inevitable temporary windows
+ +all )            ; All temportay or specila buffers starting with * or space are popups
 ;;tabs              ; a tab bar for Emacs
 (treemacs          ; a project drawer, like neotree but cooler
  +lsp +icons )
@@ -109,7 +110,7 @@ syntax              ; tasing you for every semicolon you forget
 (cc +lsp)         ; C > C++ == 1
 emacs-lisp        ; drown in parentheses
 (gdscript +lsp)   ; the language you waited for
-json              ; At least it ain't XML
+;;json              ; At least it ain't XML
 ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
 (latex +lsp       ; writing papers in Emacs has never been so fun
  +latexmk)
@@ -118,7 +119,7 @@ markdown          ; writing docs for people to ignore
  +roam2           ; wander around notes
  +pretty          ; better looking org
  +dragndrop       ; drag and drop files/images into org buffers
- +pandoc          ; export-with-pandoc support
+ ;+pandoc          ; export-with-pandoc support
  )
 (python +lsp      ; beautiful is better than ugly
  +poetry          ; Python dependency manangement
